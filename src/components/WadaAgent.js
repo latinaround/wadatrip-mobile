@@ -23,7 +23,7 @@ const WadaAgent = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: '¡Hola! Soy WadaAgent, tu operador de viajes IA para WadaTrip. ¿En qué puedo ayudarte hoy?',
+      text: 'Hi! I\'m WadaAgent, your travel AI. How can I help today?',
       isBot: true,
       timestamp: new Date(),
     },
@@ -35,19 +35,28 @@ const WadaAgent = () => {
   const slideAnim = React.useRef(new Animated.Value(0)).current;
   const glowAnim = React.useRef(new Animated.Value(0)).current;
   const bounceAnim = React.useRef(new Animated.Value(0)).current;
+  const dotsAnim = React.useRef(new Animated.Value(0)).current;
+  const [botTyping, setBotTyping] = useState(false);
+
+  const theme = {
+    primary: '#2a9d8f',
+    accent: '#3a86ff',
+    bubbleBot: '#f1f5f9',
+    bubbleUser: '#2a9d8f',
+  };
 
   useEffect(() => {
     // Animación de pulso más intensa para llamar la atención
     const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.4,
-          duration: 800,
+          toValue: 1.2,
+          duration: 900,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 800,
+          duration: 900,
           useNativeDriver: true,
         }),
       ])
@@ -58,12 +67,12 @@ const WadaAgent = () => {
       Animated.sequence([
         Animated.timing(glowAnim, {
           toValue: 1,
-          duration: 1500,
+          duration: 1600,
           useNativeDriver: false,
         }),
         Animated.timing(glowAnim, {
           toValue: 0,
-          duration: 1500,
+          duration: 1600,
           useNativeDriver: false,
         }),
       ])
@@ -73,28 +82,41 @@ const WadaAgent = () => {
     const bounceAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(bounceAnim, {
-          toValue: -10,
-          duration: 1200,
+          toValue: -8,
+          duration: 1400,
           useNativeDriver: true,
         }),
         Animated.timing(bounceAnim, {
           toValue: 0,
-          duration: 1200,
+          duration: 1400,
           useNativeDriver: true,
         }),
       ])
     );
-    
-    pulseAnimation.start();
-    glowAnimation.start();
-    bounceAnimation.start();
+
+    // Dots typing animation loop
+    const dotsAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(dotsAnim, { toValue: 1, duration: 900, useNativeDriver: false }),
+        Animated.timing(dotsAnim, { toValue: 0, duration: 900, useNativeDriver: false }),
+      ])
+    );
+
+    // Only run button animations when chat is closed (improves web typing stability)
+    if (!isExpanded) {
+      pulseAnimation.start();
+      glowAnimation.start();
+      bounceAnimation.start();
+    }
+    dotsAnimation.start();
     
     return () => {
       pulseAnimation.stop();
       glowAnimation.stop();
       bounceAnimation.stop();
+      dotsAnimation.stop();
     };
-  }, []);
+  }, [isExpanded]);
 
   const sendMessage = React.useCallback(() => {
     if (message.trim()) {
@@ -112,15 +134,16 @@ const WadaAgent = () => {
       setMessage('');
       
       // Simular respuesta del bot con respuestas específicas de WadaTrip
+      setBotTyping(true);
       setTimeout(() => {
         const responses = [
-          '¡Excelente! Te ayudo a encontrar las mejores ofertas de vuelos.',
-          'Puedo configurar alertas de precios para tus destinos favoritos.',
-          'Déjame buscar los vuelos más baratos para tus fechas.',
-          'Te recomiendo activar las notificaciones para no perder ofertas.',
-          '¡Perfecto! Vamos a crear tu alerta de precio personalizada.',
-          'Puedo ayudarte a comparar precios entre diferentes aerolíneas.',
-          'Te sugiero los mejores momentos para comprar tu vuelo.',
+          'Great! I can find the best flight deals for you.',
+          'I can set price alerts for your favorite destinations.',
+          'Let me search the cheapest flights for your dates.',
+          'Tip: Enable notifications so you never miss a deal.',
+          'Awesome, let’s create your personalized price alert.',
+          'I can compare airlines to get you the best fare.',
+          'I’ll suggest the best time windows to buy.',
         ];
         const randomResponse = responses[Math.floor(Math.random() * responses.length)];
         
@@ -131,6 +154,7 @@ const WadaAgent = () => {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, botResponse]);
+        setBotTyping(false);
       }, 1000);
     }
   }, [message]);
@@ -263,13 +287,31 @@ const WadaAgent = () => {
               >
                 {messages.map((msg) => (
                   <View key={msg.id} style={[styles.messageWrapper, msg.isBot ? styles.botMessageWrapper : styles.userMessageWrapper]}>
-                    <View style={[styles.messageBubble, msg.isBot ? styles.botMessage : styles.userMessage]}>
+                    <View style={[styles.messageBubble, msg.isBot ? styles.botMessage : styles.userMessage] }>
                       <Text style={[styles.messageText, msg.isBot ? styles.botMessageText : styles.userMessageText]}>
                         {msg.text}
                       </Text>
                     </View>
                     <Text style={styles.messageTime}>{formatTime(msg.timestamp)}</Text>
                   </View>
+                ))}
+                {botTyping && (
+                  <View style={[styles.messageWrapper, styles.botMessageWrapper]}>
+                    <View style={[styles.messageBubble, styles.botMessage, { flexDirection: 'row', gap: 4, alignItems: 'center', paddingVertical: 12 }]}>
+                      {[0,1,2].map((i) => (
+                        <Animated.View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#94a3b8', opacity: dotsAnim.interpolate({ inputRange: [0,1], outputRange: i === 1 ? [0.3, 1] : [1, 0.3] }) }} />
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
+
+              {/* Quick suggestions */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
+                {['Find flights to Tokyo', 'Best tours under $500', 'Plan 3-day itinerary', 'Set price alert'].map((s) => (
+                  <TouchableOpacity key={s} style={styles.suggestionChip} onPress={() => { setMessage(s); setTimeout(() => sendMessage(), 0); }}>
+                    <Text style={styles.suggestionText}>{s}</Text>
+                  </TouchableOpacity>
                 ))}
               </ScrollView>
 
@@ -293,7 +335,7 @@ const WadaAgent = () => {
                     }
                   } : undefined}
                 />
-                <TouchableOpacity onPress={sendMessage} style={[styles.sendButton, { opacity: message.trim() ? 1 : 0.5 }]} disabled={!message.trim()}>
+                <TouchableOpacity onPress={sendMessage} style={[styles.sendButton, { opacity: message.trim() ? 1 : 0.5, backgroundColor: theme.accent }]} disabled={!message.trim()}>
                   <Ionicons name="send" size={20} color="white" />
                 </TouchableOpacity>
               </View>
@@ -328,7 +370,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#2a9d8f',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
@@ -341,7 +383,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#FFD93D',
+    borderColor: '#3a86ff',
   },
   buttonContent: {
     width: '100%',
@@ -371,7 +413,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#eef2f7',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -381,7 +423,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#2a9d8f',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -420,11 +462,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   botMessage: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f1f5f9',
     borderBottomLeftRadius: 4,
   },
   userMessage: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#2a9d8f',
     borderBottomRightRadius: 4,
   },
   messageText: {
@@ -449,13 +491,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#eef2f7',
     backgroundColor: 'white',
   },
   textInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#dbe2ea',
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 10,
@@ -467,10 +509,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#2a9d8f',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  suggestionsRow: { paddingHorizontal: 16, paddingTop: 8 },
+  suggestionChip: { backgroundColor: '#eef2f7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, marginRight: 8 },
+  suggestionText: { color: '#1d3557', fontWeight: '600' },
 });
 
 export default WadaAgent;
