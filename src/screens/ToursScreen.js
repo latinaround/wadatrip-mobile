@@ -18,16 +18,33 @@ export default function ToursScreen() {
   };
 
   const onSearch = async () => {
-    const min = parseNumber(budgetMin);
-    const max = parseNumber(budgetMax);
-    if (!destination) return Alert.alert('Missing destination', 'Please enter a destination');
-    if (min == null || max == null || min <= 0 || max <= 0 || min > max) {
-      return Alert.alert('Invalid budget', 'Please check your budget range');
+    if (!destination) return Alert.alert('Where?', 'Please enter a destination');
+    let min = parseNumber(budgetMin);
+    let max = parseNumber(budgetMax);
+    // Budget is optional: allow empty; if one side provided and the other not, allow as-is
+    if (min != null && min < 0) min = null;
+    if (max != null && max <= 0) max = null;
+    if (min != null && max != null && min > max) {
+      return Alert.alert('Invalid budget', 'Min must be <= Max');
     }
+
     setLoading(true);
     try {
-      const ranked = await searchAndRankTours({ destination, budgetMin: min, budgetMax: max });
+      const ranked = await searchAndRankTours({ destination, budgetMin: min ?? undefined, budgetMax: max ?? undefined });
       setResults(ranked);
+      // Log search to Firestore for backend/analytics
+      try {
+        const user = auth.currentUser;
+        await addDoc(collection(db, 'tourSearches'), {
+          uid: user?.uid || null,
+          destination,
+          budgetMin: min ?? null,
+          budgetMax: max ?? null,
+          decisionDays: parseNumber(decisionDays) || null,
+          resultCount: ranked.length,
+          createdAt: serverTimestamp(),
+        });
+      } catch {}
     } catch (e) {
       console.error('Error searching tours', e);
       Alert.alert('Error', 'Could not load tours');
@@ -81,7 +98,7 @@ export default function ToursScreen() {
         <Text style={styles.title}>Tours & Best Deals</Text>
         <TextInput
           style={styles.input}
-          placeholder="Destination (e.g. Tokyo)"
+          placeholder="Where (e.g. Tokyo)"
           value={destination}
           onChangeText={setDestination}
           autoCapitalize="words"
@@ -89,14 +106,14 @@ export default function ToursScreen() {
         <View style={styles.row}>
           <TextInput
             style={[styles.input, styles.inputHalf]}
-            placeholder="Budget min"
+            placeholder="Budget min (optional)"
             keyboardType="numeric"
             value={budgetMin}
             onChangeText={setBudgetMin}
           />
           <TextInput
             style={[styles.input, styles.inputHalf]}
-            placeholder="Budget max"
+            placeholder="Budget max (optional)"
             keyboardType="numeric"
             value={budgetMax}
             onChangeText={setBudgetMax}
