@@ -18,6 +18,11 @@ export default function ToursScreen() {
   const [anywhere, setAnywhere] = useState(false);
   const [top, setTop] = useState([]);
 
+  // Debug: log when Top Tours data changes
+  useEffect(() => {
+    console.log('[Tours] Top tours loaded:', top?.length || 0);
+  }, [top]);
+
   // Load top tours: prefer recommendations else mock top
   useEffect(() => {
     const uid = auth.currentUser?.uid || null;
@@ -205,6 +210,10 @@ export default function ToursScreen() {
       </View>
 
       {/* Top Tours magazine-style */}
+      <View style={styles.banner}>
+        <Text style={styles.bannerTitle}>🏆 Top Tours — personalized for you</Text>
+        <Text style={styles.bannerSub}>{top?.length || 0} picks curated from your alerts</Text>
+      </View>
       <Text style={styles.magHeader}>Top Tours</Text>
       <FlatList
         horizontal
@@ -251,10 +260,13 @@ export default function ToursScreen() {
     cardMeta: { color: '#6c757d', marginTop: 2 },
     tagsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 },
     tag: { backgroundColor: '#eef6f5', color: '#2a9d8f', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginRight: 6, marginBottom: 6, fontSize: 12 },
-    magHeader: { fontSize: 18, fontWeight: '800', color: '#1d3557', paddingHorizontal: 16, marginTop: 10 },
+    magHeader: { fontSize: 18, fontWeight: '800', color: '#1d3557', paddingHorizontal: 16, marginTop: 6 },
     magList: { paddingHorizontal: 16, paddingVertical: 10 },
     chip: { backgroundColor: '#eef2f7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
     chipActive: { backgroundColor: '#2a9d8f' },
     chipText: { color: '#1d3557', fontWeight: '700' },
     chipTextActive: { color: '#fff' },
+    banner: { backgroundColor: '#e6f4ff', borderWidth: 1, borderColor: '#cfe7ff', borderRadius: 10, marginHorizontal: 16, marginTop: 12, paddingVertical: 10, paddingHorizontal: 12 },
+    bannerTitle: { color: '#1d3557', fontWeight: '800', fontSize: 16 },
+    bannerSub: { color: '#3a86ff', marginTop: 2, fontWeight: '600' },
   });
