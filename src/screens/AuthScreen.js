@@ -9,6 +9,7 @@ import {
   signInWithPopup,
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
+import { ensureUserProfile } from '../services/userProfile';
 import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
 import Constants from 'expo-constants';
@@ -122,6 +123,7 @@ export default function AuthScreen() {
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
       }
+      await ensureUserProfile(auth.currentUser);
       // No es necesaria una alerta de éxito, el listener en App.js se encargará de la navegación.
     } catch (error) {
       Alert.alert('Error de Autenticación', error.message);
@@ -137,6 +139,7 @@ export default function AuthScreen() {
     try {
       const credential = GoogleAuthProvider.credential(idToken);
       await signInWithCredential(auth, credential);
+      await ensureUserProfile(auth.currentUser);
     } catch (error) {
       console.error('Firebase error with Google credential:', error);
       Alert.alert('Error', 'Could not verify Google session.');
@@ -161,6 +164,7 @@ export default function AuthScreen() {
         const provider = new OAuthProvider('apple.com');
         const credential = provider.credential({ idToken: identityToken });
         await signInWithCredential(auth, credential);
+        await ensureUserProfile(auth.currentUser);
       } else {
         throw new Error('No se recibió el identityToken de Apple.');
       }

@@ -92,9 +92,14 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
             <Text style={styles.headerTitle}>WadaTrip</Text>
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-              <Text style={styles.logoutText}>{t('logout', 'Cerrar sesión')}</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={[styles.logoutButton, { marginRight: 8 }]}>
+                <Text style={styles.logoutText}>Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                <Text style={styles.logoutText}>{t('logout', 'Cerrar sesión')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           <Text style={styles.headerSubtitle}>{t('your_travel_companion', 'Your Travel Companion')}</Text>
         </View>

@@ -1,14 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, Image } from 'react-native';
 import { auth, db } from '../services/firebase';
 import { addDoc, collection, onSnapshot, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { getUserProfile } from '../services/userProfile';
 
 export default function CommunityScreen() {
   const [location, setLocation] = useState('Tokyo');
   const [text, setText] = useState('');
   const [messages, setMessages] = useState([]);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
+    (async () => {
+      const u = auth.currentUser;
+      if (u?.uid) setProfile((await getUserProfile(u.uid)) || { displayName: u.displayName, photoURL: u.photoURL });
+    })();
     if (!location) return;
     const q = query(
       collection(db, 'communityMessages'),
@@ -29,7 +35,8 @@ export default function CommunityScreen() {
     try {
       await addDoc(collection(db, 'communityMessages'), {
         uid: user?.uid || null,
-        displayName: user?.email || 'viajero',
+        displayName: profile?.displayName || user?.displayName || (user?.email ? user.email.split('@')[0] : 'traveler'),
+        photoURL: profile?.photoURL || user?.photoURL || null,
         location,
         text: text.trim(),
         createdAt: serverTimestamp(),
@@ -50,9 +57,18 @@ export default function CommunityScreen() {
         data={messages}
         keyExtractor={(i) => i.id}
         renderItem={({ item }) => (
-          <View style={styles.msg}>
-            <Text style={styles.msgFrom}>{item.displayName}</Text>
-            <Text style={styles.msgText}>{item.text}</Text>
+          <View style={styles.msgRow}>
+            {item.photoURL ? (
+              <Image source={{ uri: item.photoURL }} style={styles.msgAvatar} />
+            ) : (
+              <View style={[styles.msgAvatar, styles.msgAvatarPlaceholder]}>
+                <Text style={{ color: '#fff', fontWeight: '800' }}>{(item.displayName || 'U').charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+            <View style={styles.msg}>
+              <Text style={styles.msgFrom}>{item.displayName}</Text>
+              <Text style={styles.msgText}>{item.text}</Text>
+            </View>
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>No messages yet. Be the first!</Text>}
@@ -74,7 +90,10 @@ const styles = StyleSheet.create({
   list: { paddingVertical: 8 },
   listEmpty: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   empty: { color: '#6c757d' },
-  msg: { backgroundColor: '#fff', padding: 10, borderRadius: 8, marginBottom: 8, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  msgRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
+  msgAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 8 },
+  msgAvatarPlaceholder: { backgroundColor: '#adb5bd', alignItems: 'center', justifyContent: 'center' },
+  msg: { backgroundColor: '#fff', padding: 10, borderRadius: 8, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1, flex: 1 },
   msgFrom: { fontWeight: '700', color: '#1d3557', marginBottom: 2 },
   msgText: { color: '#333' },
   row: { flexDirection: 'row', alignItems: 'center' },
