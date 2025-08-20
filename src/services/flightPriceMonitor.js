@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { predictFlightPrice } from './mlFlightPredictor';
+import { predictFlightPrice, getFlightAdvice } from './mlFlightPredictor';
 import { sendEmailNotification } from './notificationService';
 import { Platform } from 'react-native';
 
@@ -89,16 +89,19 @@ class FlightPriceMonitor {
     const monitor = this.activeMonitors.get(monitorId);
     if (!monitor) return;
 
-    // Check prices every 30 minutes (in production, this would be more sophisticated)
-    const interval = setInterval(async () => {
-      await this.checkPrices(monitorId);
-    }, 30 * 60 * 1000); // 30 minutes
+    // Adaptive cadence: slow by default, faster near window or good signal
+    const tick = async () => {
+      const continueMonitoring = await this.checkPrices(monitorId);
+      const m = this.activeMonitors.get(monitorId);
+      if (!continueMonitoring || !m || m.status !== 'active') return;
+      const advice = await getFlightAdvice(m).catch(() => null);
+      const nextH = advice?.nextCheckHours ?? 24;
+      m.timeoutId = setTimeout(tick, Math.max(1, nextH) * 3600 * 1000);
+    };
+    tick();
 
-    // Store interval reference
-    monitor.intervalId = interval;
-    
-    // Initial check
-    this.checkPrices(monitorId);
+    // Store timeout reference (recreated each tick)
+    monitor.intervalId = true; // marker
   }
 
   /**
@@ -107,12 +110,12 @@ class FlightPriceMonitor {
    */
   async checkPrices(monitorId) {
     const monitor = this.activeMonitors.get(monitorId);
-    if (!monitor || monitor.status !== 'active') return;
+    if (!monitor || monitor.status !== 'active') return false;
 
     // Check if monitor has expired
     if (new Date() > monitor.expiresAt) {
       await this.expireMonitor(monitorId);
-      return;
+      return false;
     }
 
     try {
@@ -131,6 +134,7 @@ class FlightPriceMonitor {
       if (predictedPrice <= monitor.budget) {
         await this.notifyPriceFound(monitor, predictedPrice);
         await this.completeMonitor(monitorId);
+        return false;
       }
       
       console.log(`Price check for ${monitorId}: $${predictedPrice} (Budget: $${monitor.budget})`);
@@ -138,6 +142,7 @@ class FlightPriceMonitor {
     } catch (error) {
       console.error(`Error checking prices for monitor ${monitorId}:`, error);
     }
+    return true;
   }
 
   /**
@@ -195,9 +200,7 @@ class FlightPriceMonitor {
     monitor.status = 'expired';
     
     // Clear interval
-    if (monitor.intervalId) {
-      clearInterval(monitor.intervalId);
-    }
+    if (monitor.timeoutId) clearTimeout(monitor.timeoutId);
     
     // Send expiration notification
     const title = 'Alerta de Precio Expirada';
@@ -247,9 +250,7 @@ class FlightPriceMonitor {
     monitor.status = 'completed';
     
     // Clear interval
-    if (monitor.intervalId) {
-      clearInterval(monitor.intervalId);
-    }
+    if (monitor.timeoutId) clearTimeout(monitor.timeoutId);
     
     console.log(`Monitor ${monitorId} completed successfully`);
   }
@@ -266,9 +267,7 @@ class FlightPriceMonitor {
     monitor.status = 'cancelled';
     
     // Clear interval
-    if (monitor.intervalId) {
-      clearInterval(monitor.intervalId);
-    }
+    if (monitor.timeoutId) clearTimeout(monitor.timeoutId);
     
     this.activeMonitors.delete(monitorId);
     

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'reac
 import { auth, db } from '../services/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import flightPriceMonitor from '../services/flightPriceMonitor';
+import { getFlightAdvice } from '../services/mlFlightPredictor';
 
 export default function FlightsScreen() {
   const [origin, setOrigin] = useState('San Francisco');
@@ -10,6 +11,7 @@ export default function FlightsScreen() {
   const [budget, setBudget] = useState('500');
   const [date, setDate] = useState(''); // opcional
   const [flexHours, setFlexHours] = useState('168'); // 1 semana por defecto
+  const [advice, setAdvice] = useState(null);
 
   const parseNumber = (v) => {
     const n = Number(String(v).replace(/[^0-9.]/g, ''));
@@ -30,6 +32,7 @@ export default function FlightsScreen() {
         origin,
         destination,
         budget: b,
+        departureDate: date || null,
         maxWaitHours: hours,
         status: 'active',
         createdAt: serverTimestamp(),
@@ -41,6 +44,7 @@ export default function FlightsScreen() {
           origin,
           destination,
           budget: b,
+          departureDate: date || new Date().toISOString(),
           maxWaitTime: hours / 24, // servicio usa días aprox
           userEmail: user?.email || 'user@wadatrip.com',
         });
@@ -52,6 +56,18 @@ export default function FlightsScreen() {
     } catch (e) {
       console.error('Error creating flight alert', e);
       Alert.alert('Error', 'Could not create the alert');
+    }
+  };
+
+  const onGetAdvice = async () => {
+    const b = parseNumber(budget) || undefined;
+    const payload = { origin, destination, budget: b, departureDate: date || new Date().toISOString() };
+    try {
+      const res = await getFlightAdvice(payload);
+      setAdvice(res);
+    } catch (e) {
+      console.error('Advice error', e);
+      Alert.alert('Error', 'Could not compute advice');
     }
   };
 
@@ -77,6 +93,21 @@ export default function FlightsScreen() {
 
       <TextInput style={styles.input} placeholder="Search hours (custom)" keyboardType="numeric" value={flexHours} onChangeText={setFlexHours} />
 
+      <TouchableOpacity style={[styles.button, styles.primary]} onPress={onGetAdvice}>
+        <Text style={styles.buttonText}>Get price advice</Text>
+      </TouchableOpacity>
+
+      {advice && (
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>Advice</Text>
+          <Text style={styles.panelLine}>Predicted: ${advice.predictedPrice} (± ~{Math.round(((advice.upperBound - advice.lowerBound)/2))})</Text>
+          <Text style={styles.panelLine}>Range: ${advice.lowerBound} – ${advice.upperBound}</Text>
+          <Text style={styles.panelLine}>Recommendation: {advice.recommendation.replace('_', ' ')}</Text>
+          <Text style={styles.panelLine}>Confidence: {Math.round(advice.confidence * 100)}%</Text>
+          <Text style={styles.panelLine}>Next check in ~{advice.nextCheckHours}h</Text>
+        </View>
+      )}
+
       <TouchableOpacity style={[styles.button, styles.primary]} onPress={onCreateAlert}>
         <Text style={styles.buttonText}>Create alert</Text>
       </TouchableOpacity>
@@ -97,4 +128,7 @@ const styles = StyleSheet.create({
   button: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 6 },
   primary: { backgroundColor: '#2a9d8f' },
   buttonText: { color: '#fff', fontWeight: '600' },
+  panel: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#e9ecef' },
+  panelTitle: { fontWeight: '800', color: '#1d3557', marginBottom: 6 },
+  panelLine: { color: '#333', marginTop: 2 },
 });
