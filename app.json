@@ -1,29 +1,64 @@
 {
   "expo": {
-    "name": "wadatrip-mobile",
+    "name": "WadaTrip Mobile",
     "slug": "wadatrip-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wadatrip.mobile",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "WadaTrip usa esta información para mejorar tu experiencia de viaje.",
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.wadatrip.mobile",
+      "permissions": [
+        "INTERNET",
+        "NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "scheme": "wadatrip",
+    "plugins": [
+      "expo-apple-authentication",
+      "expo-font",
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ff6600"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b79e31bd-c5f5-41fa-86a5-c456870090d3"
+      },
+      "auth": {
+        "webClientId": "981114942208-lr5aqqov1ifftioc462ut45sadvvjusd.apps.googleusercontent.com",
+        "androidClientId": "981114942208-8hsf2u8833vlpuia4l9jmeus9sdd650p.apps.googleusercontent.com",
+        "iosClientId": ""
+      }
     }
   }
 }
