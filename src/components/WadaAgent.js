@@ -179,179 +179,128 @@ const WadaAgent = () => {
     } catch {}
   }, [messages.length]);
 
-  const FloatingButton = React.memo(() => (
-    <View style={styles.floatingContainer}>
-      <Text style={styles.floatingLabel}>WadaAgent</Text>
-      <Animated.View
-        style={[
-          styles.floatingButton,
-          {
-            transform: [
-              { scale: scaleAnim },
-              { scale: pulseAnim },
-              { translateY: bounceAnim },
-            ],
-            shadowColor: glowAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['#FF6B6B', '#FFD93D'],
-            }),
-            shadowOpacity: glowAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.3, 0.8],
-            }),
-            shadowRadius: glowAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [8, 20],
-            }),
-          },
-        ]}
-      >
-        <Animated.View
-          style={[
-            styles.glowRing,
-            {
-              opacity: glowAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 0.6],
-              }),
-              transform: [{
-                scale: glowAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [1, 1.5],
-                }),
-              }],
-            },
-          ]}
-        />
-        <TouchableOpacity
-          onPress={handlePress}
-          style={styles.buttonContent}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="chatbubble-ellipses" size={28} color="white" />
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
-  ));
+  // Focus input when modal opens (helps web/mobile)
+  const inputRef = React.useRef(null);
+  useEffect(() => {
+    if (isExpanded) {
+      const id = setTimeout(() => {
+        try { inputRef.current?.focus?.(); } catch {}
+      }, 100);
+      return () => clearTimeout(id);
+    }
+  }, [isExpanded]);
 
-  const ChatModal = React.memo(() => (
-    <Modal
-      visible={isExpanded}
-      transparent={true}
-      animationType="none"
-      onRequestClose={handleClose}
-    >
-      <View style={styles.modalOverlay}>
-        <Animated.View
-          style={[
-            styles.chatContainer,
-            {
-              transform: [
-                {
-                  translateY: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [height, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.keyboardAvoid}
-          >
-            {/* Header del Chat */}
-            <View style={styles.chatHeader}>
-              <View style={styles.headerLeft}>
-                <View style={styles.agentAvatar}>
-                  <Ionicons name="chatbubble-ellipses" size={20} color="white" />
-                </View>
-                <View>
-                  <Text style={styles.agentName}>WadaAgent</Text>
-                  <Text style={styles.agentStatus}>Asistente IA • En línea</Text>
-                </View>
-              </View>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Mensajes */}
-            <ScrollView
-              style={styles.messagesContainer}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              ref={scrollRef}
-            >
-              {messages.map((msg) => (
-                <View
-                  key={msg.id}
-                  style={[
-                    styles.messageWrapper,
-                    msg.isBot ? styles.botMessageWrapper : styles.userMessageWrapper,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.messageBubble,
-                      msg.isBot ? styles.botMessage : styles.userMessage,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.messageText,
-                        msg.isBot ? styles.botMessageText : styles.userMessageText,
-                      ]}
-                    >
-                      {msg.text}
-                    </Text>
-                  </View>
-                  <Text style={styles.messageTime}>
-                    {msg.timestamp.toLocaleTimeString('es-ES', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-
-            {/* Input de Mensaje */}
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.textInput}
-                value={message}
-                onChangeText={(text) => setMessage(text)}
-                placeholder="Type your message..."
-                placeholderTextColor="#999"
-                multiline
-                maxLength={500}
-                blurOnSubmit={false}
-                returnKeyType="send"
-                onSubmitEditing={() => sendMessage()}
-              />
-              <TouchableOpacity
-                onPress={sendMessage}
-                style={[
-                  styles.sendButton,
-                  { opacity: message.trim() ? 1 : 0.5 },
-                ]}
-                disabled={!message.trim()}
-              >
-                <Ionicons name="send" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </Animated.View>
-      </View>
-    </Modal>
-  ));
+  // Helper to format time locale EN
+  const formatTime = (d) => d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <>
-      <FloatingButton />
-      <ChatModal />
+      {/* Floating Button */}
+      <View style={styles.floatingContainer}>
+        <Text style={styles.floatingLabel}>WadaAgent</Text>
+        <Animated.View
+          style={[
+            styles.floatingButton,
+            {
+              transform: [
+                { scale: scaleAnim },
+                { scale: pulseAnim },
+                { translateY: bounceAnim },
+              ],
+              shadowColor: glowAnim.interpolate({ inputRange: [0, 1], outputRange: ['#FF6B6B', '#FFD93D'] }),
+              shadowOpacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.8] }),
+              shadowRadius: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 20] }),
+            },
+          ]}
+        >
+          <Animated.View
+            style={[
+              styles.glowRing,
+              {
+                opacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.6] }),
+                transform: [{ scale: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.5] }) }],
+              },
+            ]}
+          />
+          <TouchableOpacity onPress={handlePress} style={styles.buttonContent} activeOpacity={0.8}>
+            <Ionicons name="chatbubble-ellipses" size={28} color="white" />
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+
+      {/* Chat Modal */}
+      <Modal visible={isExpanded} transparent={true} animationType="none" onRequestClose={handleClose}>
+        <View style={styles.modalOverlay}>
+          <Animated.View
+            style={[
+              styles.chatContainer,
+              { transform: [{ translateY: slideAnim.interpolate({ inputRange: [0, 1], outputRange: [height, 0] }) }] },
+            ]}
+          >
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardAvoid}>
+              {/* Header */}
+              <View style={styles.chatHeader}>
+                <View style={styles.headerLeft}>
+                  <View style={styles.agentAvatar}>
+                    <Ionicons name="chatbubble-ellipses" size={20} color="white" />
+                  </View>
+                  <View>
+                    <Text style={styles.agentName}>WadaAgent</Text>
+                    <Text style={styles.agentStatus}>AI Assistant • Online</Text>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Messages */}
+              <ScrollView
+                style={styles.messagesContainer}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps={Platform.OS === 'web' ? 'always' : 'handled'}
+                ref={scrollRef}
+              >
+                {messages.map((msg) => (
+                  <View key={msg.id} style={[styles.messageWrapper, msg.isBot ? styles.botMessageWrapper : styles.userMessageWrapper]}>
+                    <View style={[styles.messageBubble, msg.isBot ? styles.botMessage : styles.userMessage]}>
+                      <Text style={[styles.messageText, msg.isBot ? styles.botMessageText : styles.userMessageText]}>
+                        {msg.text}
+                      </Text>
+                    </View>
+                    <Text style={styles.messageTime}>{formatTime(msg.timestamp)}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+
+              {/* Input */}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  ref={inputRef}
+                  style={styles.textInput}
+                  value={message}
+                  onChangeText={setMessage}
+                  placeholder="Type your message..."
+                  placeholderTextColor="#999"
+                  multiline
+                  maxLength={500}
+                  blurOnSubmit={false}
+                  returnKeyType={Platform.OS === 'web' ? 'default' : 'send'}
+                  onKeyPress={Platform.OS === 'web' ? ({ nativeEvent }) => {
+                    if (nativeEvent.key === 'Enter' && !nativeEvent.shiftKey) {
+                      nativeEvent.preventDefault?.();
+                      sendMessage();
+                    }
+                  } : undefined}
+                />
+                <TouchableOpacity onPress={sendMessage} style={[styles.sendButton, { opacity: message.trim() ? 1 : 0.5 }]} disabled={!message.trim()}>
+                  <Ionicons name="send" size={20} color="white" />
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </Animated.View>
+        </View>
+      </Modal>
     </>
   );
 };
