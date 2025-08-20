@@ -116,6 +116,12 @@ const HomeScreen = ({ navigation }) => {
               </View>
               <Text style={styles.quickActionText}>{t('community.title', 'Explore')}</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('MyAlerts')}>
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#3a86ff' }]}>
+                <Text style={styles.quickActionIcon}>🔔</Text>
+              </View>
+              <Text style={styles.quickActionText}>My Alerts</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -149,6 +155,13 @@ const HomeScreen = ({ navigation }) => {
               <View style={styles.exploreTextContainer}>
                 <Text style={styles.exploreTitle}>{t('community.title', 'Community')}</Text>
                 <Text style={styles.exploreSubtitle}>{t('community.subtitle', 'Connect with fellow travelers')}</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('MyAlerts')}>
+              <Text style={styles.exploreIcon}>🔔</Text>
+              <View style={styles.exploreTextContainer}>
+                <Text style={styles.exploreTitle}>My Alerts</Text>
+                <Text style={styles.exploreSubtitle}>Manage your flight and tour alerts</Text>
               </View>
             </TouchableOpacity>
           </View>
