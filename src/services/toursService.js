@@ -70,3 +70,12 @@ export async function fetchFromProviders(query) {
 }
 
 export default { searchAndRankTours, fetchFromProviders };
+
+// Top mock tours across all cities (no filter)
+export async function topMockTours(limit = 10) {
+  const ranked = MOCK_TOURS
+    .map(t => ({ ...t, score: scoreTour(t, null, null) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+  return ranked;
+}

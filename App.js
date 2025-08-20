@@ -84,7 +84,7 @@ export default function App() {
         )}
       </Stack.Navigator>
 
-      {/* Solo aparece cuando hay sesión activa */}
+      {/* Global WadaAgent overlay when logged in */}
       {user && <WadaAgent />}
     </NavigationContainer>
   );

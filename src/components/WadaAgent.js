@@ -221,7 +221,6 @@ const WadaAgent = () => {
     <>
       {/* Floating Button */}
       <View style={styles.floatingContainer}>
-        <Text style={styles.floatingLabel}>WadaAgent</Text>
         <Animated.View
           style={[
             styles.floatingButton,
@@ -237,17 +236,10 @@ const WadaAgent = () => {
             },
           ]}
         >
-          <Animated.View
-            style={[
-              styles.glowRing,
-              {
-                opacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.6] }),
-                transform: [{ scale: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.5] }) }],
-              },
-            ]}
-          />
-          <TouchableOpacity onPress={handlePress} style={styles.buttonContent} activeOpacity={0.8}>
-            <Ionicons name="chatbubble-ellipses" size={28} color="white" />
+          <Animated.View style={[styles.glowRing, { opacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] }) }]} />
+          <TouchableOpacity onPress={handlePress} style={styles.buttonContent} activeOpacity={0.85}>
+            <Ionicons name="chatbubble-ellipses" size={22} color="white" />
+            <Text style={styles.floatingButtonText}>WadaAgent</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -356,20 +348,12 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   floatingLabel: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    color: 'white',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 8,
-    overflow: 'hidden',
+    display: 'none',
   },
   floatingButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    paddingHorizontal: 14,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#2a9d8f',
     justifyContent: 'center',
     alignItems: 'center',
@@ -378,9 +362,11 @@ const styles = StyleSheet.create({
   },
   glowRing: {
     position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 24,
     backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: '#3a86ff',
@@ -390,7 +376,10 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
+  floatingButtonText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

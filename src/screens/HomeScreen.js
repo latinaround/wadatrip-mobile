@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import WadaAgent from '../components/WadaAgent';
 import flightPriceMonitor from '../services/flightPriceMonitor';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../services/firebase';
@@ -205,7 +204,6 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
-      <WadaAgent />
     </SafeAreaView>
   );
 };
