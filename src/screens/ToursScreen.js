@@ -208,7 +208,7 @@ export default function ToursScreen() {
       <Text style={styles.magHeader}>Top Tours</Text>
       <FlatList
         horizontal
-        data={results}
+        data={top}
         keyExtractor={(i) => i.id}
         renderItem={renderItem}
         ListEmptyComponent={null}
