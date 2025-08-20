@@ -3,6 +3,9 @@ import Constants from 'expo-constants';
 import { predictFlightPrice, getFlightAdvice } from './mlFlightPredictor';
 import { sendEmailNotification } from './notificationService';
 import { Platform } from 'react-native';
+import { db } from './firebase';
+import { addDoc, collection, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { fetchBestPrice } from './flightAggregator';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -72,6 +75,24 @@ class FlightPriceMonitor {
     };
     
     this.activeMonitors.set(monitorId, monitor);
+
+    // Persist monitor in Firestore
+    try {
+      const ref = await addDoc(collection(db, 'flightMonitors'), {
+        monitorId,
+        origin: monitor.origin,
+        destination: monitor.destination,
+        budget: monitor.budget,
+        departureDate: monitor.departureDate || null,
+        status: monitor.status,
+        createdAt: serverTimestamp(),
+        lastCheck: null,
+        bestPrice: null,
+      });
+      monitor.dbDocId = ref.id;
+    } catch (e) {
+      console.warn('Could not persist flight monitor doc', e);
+    }
     
     // Start monitoring
     this.startMonitoring(monitorId);
@@ -119,20 +140,55 @@ class FlightPriceMonitor {
     }
 
     try {
-      // Use ML predictor to get a more realistic price
+      // Try provider aggregator (when wired). May return null.
+      const bestQuote = await fetchBestPrice({
+        origin: monitor.origin,
+        destination: monitor.destination,
+        departureDate: monitor.departureDate,
+      }).catch(() => null);
+
+      // Predictive model as robust fallback
       const predictedPrice = await predictFlightPrice(monitor);
+      const observedPrice = bestQuote?.price || null;
       
       monitor.lastCheck = new Date();
       monitor.checksCount++;
       
-      // Update best price if this is better
-      if (!monitor.bestPrice || predictedPrice < monitor.bestPrice) {
-        monitor.bestPrice = predictedPrice;
+      // Update best price with best observed signal
+      const candidate = observedPrice || predictedPrice;
+      if (!monitor.bestPrice || candidate < monitor.bestPrice) {
+        monitor.bestPrice = candidate;
       }
+
+      // Persist this check event
+      try {
+        await addDoc(collection(db, 'flightMonitorEvents'), {
+          monitorId,
+          monitorDocId: monitor.dbDocId || null,
+          origin: monitor.origin,
+          destination: monitor.destination,
+          predictedPrice,
+          observedPrice,
+          budget: monitor.budget,
+          createdAt: serverTimestamp(),
+        });
+      } catch (e) {}
+
+      // Update monitor doc
+      try {
+        if (monitor.dbDocId) {
+          await updateDoc(doc(db, 'flightMonitors', monitor.dbDocId), {
+            lastCheck: serverTimestamp(),
+            bestPrice: monitor.bestPrice,
+            status: monitor.status,
+          });
+        }
+      } catch (e) {}
       
-      // Check if price meets budget criteria
-      if (predictedPrice <= monitor.budget) {
-        await this.notifyPriceFound(monitor, predictedPrice);
+      // Check if price meets budget criteria (prefer observed price)
+      const triggerPrice = observedPrice || predictedPrice;
+      if (triggerPrice <= monitor.budget) {
+        await this.notifyPriceFound(monitor, triggerPrice);
         await this.completeMonitor(monitorId);
         return false;
       }
@@ -202,6 +258,17 @@ class FlightPriceMonitor {
     // Clear interval
     if (monitor.timeoutId) clearTimeout(monitor.timeoutId);
     
+    // Update monitor doc
+    try {
+      if (monitor.dbDocId) {
+        await updateDoc(doc(db, 'flightMonitors', monitor.dbDocId), {
+          status: monitor.status,
+          bestPrice: monitor.bestPrice,
+          lastCheck: serverTimestamp(),
+        });
+      }
+    } catch (e) {}
+
     // Send expiration notification
     const title = 'Alerta de Precio Expirada';
     const body = `Tu alerta para ${monitor.origin} → ${monitor.destination} ha expirado. El mejor precio encontrado fue: $${monitor.bestPrice || 'N/A'}`;
@@ -252,6 +319,17 @@ class FlightPriceMonitor {
     // Clear interval
     if (monitor.timeoutId) clearTimeout(monitor.timeoutId);
     
+    // Update monitor doc
+    try {
+      if (monitor.dbDocId) {
+        await updateDoc(doc(db, 'flightMonitors', monitor.dbDocId), {
+          status: monitor.status,
+          bestPrice: monitor.bestPrice,
+          lastCheck: serverTimestamp(),
+        });
+      }
+    } catch (e) {}
+
     console.log(`Monitor ${monitorId} completed successfully`);
   }
 
@@ -269,6 +347,18 @@ class FlightPriceMonitor {
     // Clear interval
     if (monitor.timeoutId) clearTimeout(monitor.timeoutId);
     
+    // Update monitor doc (best-effort)
+    (async () => {
+      try {
+        if (monitor.dbDocId) {
+          await updateDoc(doc(db, 'flightMonitors', monitor.dbDocId), {
+            status: monitor.status,
+            lastCheck: serverTimestamp(),
+          });
+        }
+      } catch (e) {}
+    })();
+
     this.activeMonitors.delete(monitorId);
     
     console.log(`Monitor ${monitorId} cancelled`);
