@@ -15,7 +15,9 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 const HomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
-  const [activeCount, setActiveCount] = React.useState(0);
+  const [flightsActive, setFlightsActive] = React.useState(0);
+  const [toursActive, setToursActive] = React.useState(0);
+  const activeCount = flightsActive + toursActive;
 
   const handleLogout = async () => {
     try {
@@ -65,21 +67,21 @@ const HomeScreen = ({ navigation }) => {
     // --- Fin: Demostración del sistema de alertas de precios ---
   }, []);
 
-  // Count active alerts (flights + tours)
+  // Count active alerts (treat missing status as active)
   useEffect(() => {
     const uid = auth.currentUser?.uid;
-    if (!uid) { setActiveCount(0); return; }
-    const qFlights = query(collection(db, 'flightAlerts'), where('uid', '==', uid), where('status', 'in', ['active', null]));
-    const qTours = query(collection(db, 'tourAlerts'), where('uid', '==', uid), where('status', 'in', ['active', null]));
+    if (!uid) { setFlightsActive(0); setToursActive(0); return; }
+    const qFlights = query(collection(db, 'flightAlerts'), where('uid', '==', uid));
+    const qTours = query(collection(db, 'tourAlerts'), where('uid', '==', uid));
     const unsub1 = onSnapshot(qFlights, (snap) => {
-      const flights = snap.size || 0;
-      setActiveCount((prev) => flights + (prev._tours || 0));
-      setActiveCount.countFlights = flights; // store meta on function object (hacky but local)
+      let count = 0;
+      snap.forEach((d) => { const s = d.data()?.status; if (!s || s === 'active') count++; });
+      setFlightsActive(count);
     });
     const unsub2 = onSnapshot(qTours, (snap) => {
-      const tours = snap.size || 0;
-      const flights = setActiveCount.countFlights || 0;
-      setActiveCount(flights + tours);
+      let count = 0;
+      snap.forEach((d) => { const s = d.data()?.status; if (!s || s === 'active') count++; });
+      setToursActive(count);
     });
     return () => { unsub1(); unsub2(); };
   }, []);
@@ -171,13 +173,6 @@ const HomeScreen = ({ navigation }) => {
               <View style={styles.exploreTextContainer}>
                 <Text style={styles.exploreTitle}>{t('tours.title', 'Tours & Deals')}</Text>
                 <Text style={styles.exploreSubtitle}>{t('tours.subtitle', 'Best-ranked tours for your budget')}</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('TopTours')}>
-              <Text style={styles.exploreIcon}>🏆</Text>
-              <View style={styles.exploreTextContainer}>
-                <Text style={styles.exploreTitle}>Top Tours</Text>
-                <Text style={styles.exploreSubtitle}>Your latest personalized recommendations</Text>
               </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('Itinerary')}>

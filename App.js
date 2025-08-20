@@ -17,7 +17,6 @@ import ToursScreen from "./src/screens/ToursScreen";
 import FlightsScreen from "./src/screens/FlightsScreen";
 import CommunityScreen from "./src/screens/CommunityScreen";
 import MyAlertsScreen from "./src/screens/MyAlertsScreen";
-import TopToursScreen from "./src/screens/TopToursScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 
 // Components
@@ -72,7 +71,7 @@ export default function App() {
             <Stack.Screen name="Flights" component={FlightsScreen} />
             <Stack.Screen name="Community" component={CommunityScreen} />
             <Stack.Screen name="MyAlerts" component={MyAlertsScreen} />
-            <Stack.Screen name="TopTours" component={TopToursScreen} />
+            {false && <Stack.Screen name="TopTours" component={() => null} />}
             <Stack.Screen name="Profile" component={ProfileScreen} />
           </>
         ) : (
