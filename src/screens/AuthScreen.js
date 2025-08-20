@@ -26,6 +26,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
 
   // --- Configuración de Autenticación de Google ---
   // Leer Client IDs desde app.json (expo.extra.auth)
@@ -60,6 +61,18 @@ export default function AuthScreen() {
     }
   }, [request]);
 
+  // Verificar disponibilidad de Apple Sign-In (solo iOS con build que tenga la capability)
+  useEffect(() => {
+    (async () => {
+      try {
+        const available = await AppleAuthentication.isAvailableAsync();
+        setAppleAvailable(available);
+      } catch {
+        setAppleAvailable(false);
+      }
+    })();
+  }, []);
+
   // --- Lógica para Manejar Respuestas de Autenticación ---
 
   // Efecto para procesar la respuesta de Google
@@ -70,28 +83,29 @@ export default function AuthScreen() {
       const idToken = response?.params?.id_token ?? response?.authentication?.idToken;
       handleGoogleSignIn(idToken);
     } else if (response?.type === 'error') {
-      console.error("Error en el flujo de Google Auth Session:", response.error);
-      Alert.alert('Error', 'No se pudo completar el inicio de sesión con Google.');
+      console.error('Error in Google Auth Session flow:', response.error);
+      Alert.alert('Error', 'Could not complete Google sign in.');
     }
   }, [response]);
 
-  // Handler para Google con fallback en web
+  // Handler para Google: en web usa popup (sin redirects); nativo usa AuthSession
   const onGooglePress = async () => {
-    try {
-      if (Platform.OS === 'web') {
-        const res = await promptAsync({ useProxy: true, redirectUri });
-        if (!res || res.type !== 'success') return;
-      } else {
-        await promptAsync({ useProxy: true, redirectUri });
-      }
-    } catch (e) {
-      // Fallback web: popup nativo de Firebase
+    if (Platform.OS === 'web') {
       try {
         await signInWithPopup(auth, new GoogleAuthProvider());
       } catch (popupErr) {
-        console.error('Fallback popup error:', popupErr);
+        console.error('Error con Google Popup (web):', popupErr);
         Alert.alert('Error', 'No se pudo iniciar sesión con Google.');
       }
+      return;
+    }
+
+    // Nativo (iOS/Android) con proxy de Expo
+    try {
+      await promptAsync({ useProxy: true, redirectUri });
+    } catch (e) {
+      console.error('Error en AuthSession (nativo):', e);
+      Alert.alert('Error', 'No se pudo abrir el flujo de Google.');
     }
   };
 
@@ -124,8 +138,8 @@ export default function AuthScreen() {
       const credential = GoogleAuthProvider.credential(idToken);
       await signInWithCredential(auth, credential);
     } catch (error) {
-      console.error("Error de Firebase con credencial de Google:", error);
-      Alert.alert('Error', 'No se pudo verificar la sesión con Google.');
+      console.error('Firebase error with Google credential:', error);
+      Alert.alert('Error', 'Could not verify Google session.');
     } finally {
       setLoading(false);
     }
@@ -164,11 +178,11 @@ export default function AuthScreen() {
   return (
     <View style={styles.container}>
       <Text variant="headlineLarge" style={styles.title}>
-        {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+        {isLogin ? 'Sign In' : 'Create Account'}
       </Text>
 
       <TextInput
-        label="Correo electrónico"
+        label="Email"
         value={email}
         onChangeText={setEmail}
         style={styles.input}
@@ -179,7 +193,7 @@ export default function AuthScreen() {
       />
 
       <TextInput
-        label="Contraseña"
+        label="Password"
         value={password}
         onChangeText={setPassword}
         style={styles.input}
@@ -196,21 +210,21 @@ export default function AuthScreen() {
         style={styles.button}
         labelStyle={styles.buttonLabel}
       >
-        {isLogin ? 'Ingresar' : 'Registrarse'}
+        {isLogin ? 'Sign In' : 'Register'}
       </Button>
 
       <Button
         mode="contained"
         onPress={onGooglePress}
-        disabled={!request || loading}
+        disabled={(Platform.OS !== 'web' && !request) || loading}
         style={[styles.button, styles.googleButton]}
         icon="google"
         labelStyle={styles.buttonLabel}
       >
-        Continuar con Google
+        Continue with Google
       </Button>
 
-      {Platform.OS === 'ios' && (
+      {Platform.OS === 'ios' && appleAvailable && (
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
@@ -220,6 +234,18 @@ export default function AuthScreen() {
           disabled={loading}
         />
       )}
+      {!(Platform.OS === 'ios' && appleAvailable) && (
+        <Button
+          mode="contained"
+          icon="apple"
+          onPress={() => Alert.alert('Apple', 'Available only in iOS app build.')}
+          disabled={loading}
+          style={[styles.button, styles.appleFallbackButton]}
+          labelStyle={styles.buttonLabel}
+        >
+          Continue with Apple
+        </Button>
+      )}
 
       <Button
         mode="text"
@@ -227,7 +253,7 @@ export default function AuthScreen() {
         disabled={loading}
         style={styles.linkButton}
       >
-        {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
+        {isLogin ? "Don't have an account? Register" : 'Already have an account? Sign in'}
       </Button>
     </View>
   );

@@ -13,6 +13,9 @@ import HomeScreen from "./src/screens/HomeScreen";
 import ItineraryScreen from "./src/screens/ItineraryScreen";
 import AuthScreen from "./src/screens/AuthScreen";
 import RegisterScreen from "./src/screens/RegisterScreen";
+import ToursScreen from "./src/screens/ToursScreen";
+import FlightsScreen from "./src/screens/FlightsScreen";
+import CommunityScreen from "./src/screens/CommunityScreen";
 
 // Components
 import WadaAgent from "./src/components/WadaAgent";
@@ -62,6 +65,9 @@ export default function App() {
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Itinerary" component={ItineraryScreen} />
+            <Stack.Screen name="Tours" component={ToursScreen} />
+            <Stack.Screen name="Flights" component={FlightsScreen} />
+            <Stack.Screen name="Community" component={CommunityScreen} />
           </>
         ) : (
           // Usuario no logueado → Auth + Registro

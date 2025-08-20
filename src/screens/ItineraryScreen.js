@@ -13,21 +13,31 @@ import { useTranslation } from 'react-i18next';
 const ItineraryScreen = () => {
   const { t } = useTranslation();
   const [location, setLocation] = useState('');
-  const [email, setEmail] = useState('');
+  const [budgetMin, setBudgetMin] = useState('50');
+  const [budgetMax, setBudgetMax] = useState('600');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [flexHours, setFlexHours] = useState('168'); // 1 week
+  const [loading, setLoading] = useState(false);
+  const [tours, setTours] = useState([]);
+
+  const parseNumber = (v) => {
+    const n = Number(String(v).replace(/[^0-9.]/g, ''));
+    return isNaN(n) ? null : n;
+  };
 
   const handleCreateAlert = () => {
-    if (!location || !email) {
-      Alert.alert(
-        t('error', 'Error'),
-        t('fill_all_fields', 'Please fill in all fields.')
-      );
+    if (!location) {
+      Alert.alert(t('error', 'Error'), 'Please enter a location');
       return;
     }
-    // Lógica para crear la alerta aquí
-    Alert.alert(
-      t('success', 'Success'),
-      t('alert_created_message', 'Alert for {{location}} will be sent to {{email}}.', { location, email })
-    );
+    const min = parseNumber(budgetMin);
+    const max = parseNumber(budgetMax);
+    if (min == null || max == null || min <= 0 || max <= 0 || min > max) {
+      Alert.alert('Invalid budget', 'Please check your range');
+      return;
+    }
+    Alert.alert('Ready', 'We will create itinerary alerts with your parameters.');
   };
 
   return (
@@ -41,27 +51,75 @@ const ItineraryScreen = () => {
         </Text>
         <View style={styles.inputGroup}>
           <Text style={styles.label}>{t('location', 'Location')}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t('enter_location', 'Enter a location')}
-            value={location}
-            onChangeText={setLocation}
-          />
+          <TextInput style={styles.input} placeholder={t('enter_location', 'Enter a location')} value={location} onChangeText={setLocation} />
         </View>
+
+        <View style={styles.row}> 
+          <View style={[styles.inputGroup, styles.half]}>
+          <Text style={styles.label}>Budget min</Text>
+          <TextInput style={styles.input} placeholder="$50" keyboardType="numeric" value={budgetMin} onChangeText={setBudgetMin} />
+        </View>
+        <View style={[styles.inputGroup, styles.half]}>
+          <Text style={styles.label}>Budget max</Text>
+          <TextInput style={styles.input} placeholder="$600" keyboardType="numeric" value={budgetMax} onChangeText={setBudgetMax} />
+        </View>
+        </View>
+
+        <View style={styles.row}>
+          <View style={[styles.inputGroup, styles.half]}>
+            <Text style={styles.label}>Start date</Text>
+            <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={startDate} onChangeText={setStartDate} />
+          </View>
+          <View style={[styles.inputGroup, styles.half]}>
+            <Text style={styles.label}>End date</Text>
+            <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={endDate} onChangeText={setEndDate} />
+          </View>
+        </View>
+
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>{t('email', 'Email')}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t('enter_email', 'Enter your email')}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          <Text style={styles.label}>Flexibility time to find</Text>
+          <View style={styles.flexGrid}>
+            <TouchableOpacity style={[styles.flexBtn, flexHours === '24' && styles.flexBtnActive]} onPress={() => setFlexHours('24')}>
+              <Text style={[styles.flexBtnText, flexHours === '24' && styles.flexBtnTextActive]}>1 hr – 24 hrs</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.flexBtn, flexHours === '72' && styles.flexBtnActive]} onPress={() => setFlexHours('72')}>
+              <Text style={[styles.flexBtnText, flexHours === '72' && styles.flexBtnTextActive]}>1 day – 3 days</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.flexBtn, flexHours === '168' && styles.flexBtnActive]} onPress={() => setFlexHours('168')}>
+              <Text style={[styles.flexBtnText, flexHours === '168' && styles.flexBtnTextActive]}>3 days – 1 week</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.flexBtn, flexHours === '720' && styles.flexBtnActive]} onPress={() => setFlexHours('720')}>
+              <Text style={[styles.flexBtnText, flexHours === '720' && styles.flexBtnTextActive]}>1 month</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <TouchableOpacity style={styles.button} onPress={handleCreateAlert}>
           <Text style={styles.buttonText}>{t('create_alert', 'Create Alert')}</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={[styles.button, { backgroundColor: '#2a9d8f', marginTop: 10 }]} onPress={async () => {
+          const min = parseNumber(budgetMin); const max = parseNumber(budgetMax);
+          if (!location || min == null || max == null) return;
+          setLoading(true);
+          try {
+            const { searchAndRankTours } = await import('../services/toursService');
+            const res = await searchAndRankTours({ destination: location, budgetMin: min, budgetMax: max });
+            setTours(res);
+          } catch (e) { console.error(e); Alert.alert('Error', 'Could not load tours'); }
+          finally { setLoading(false); }
+        }}>
+          <Text style={styles.buttonText}>{loading ? 'Searching…' : 'See best tours'}</Text>
+        </TouchableOpacity>
+
+        {tours?.length ? (
+          <View style={{ marginTop: 20 }}>
+            {tours.map((t) => (
+              <View key={t.id} style={styles.tourCard}>
+                <Text style={styles.tourTitle}>{t.title}</Text>
+                <Text style={styles.tourMeta}>{t.city} • ${t.price} • ⭐ {t.rating} ({t.reviews})</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -115,6 +173,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  half: { width: '48%' },
+  flexGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  flexBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#eef2f7' },
+  flexBtnActive: { backgroundColor: '#2a9d8f' },
+  flexBtnText: { color: '#1d3557', fontWeight: '600' },
+  flexBtnTextActive: { color: '#fff' },
   buttonText: {
     color: '#fff',
     fontSize: 16,

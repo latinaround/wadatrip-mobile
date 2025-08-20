@@ -82,11 +82,17 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('quick_actions', 'Quick Actions')}</Text>
           <View style={styles.quickActionsGrid}>
-            <TouchableOpacity style={styles.quickActionButton}>
-              <View style={[styles.quickActionIconContainer, { backgroundColor: '#0077b6' }]}>
+            <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('Flights')}>
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#0077b6' }]}> 
                 <Text style={styles.quickActionIcon}>✈️</Text>
               </View>
-              <Text style={styles.quickActionText}>{t('search.title', 'Search Flights')}</Text>
+              <Text style={styles.quickActionText}>{t('flights.title', 'Flights')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('Tours')}>
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#f77f00' }]}> 
+                <Text style={styles.quickActionIcon}>🧭</Text>
+              </View>
+              <Text style={styles.quickActionText}>{t('tours.title', 'Tours & Deals')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickActionButton}>
               <View style={[styles.quickActionIconContainer, { backgroundColor: '#fca311' }]}>
@@ -104,7 +110,7 @@ const HomeScreen = ({ navigation }) => {
               </View>
               <Text style={styles.quickActionText}>{t('itinerary.title', 'Itinerary')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickActionButton}>
+            <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('Community')}>
               <View style={[styles.quickActionIconContainer, { backgroundColor: '#e76f51' }]}>
                 <Text style={styles.quickActionIcon}>🌍</Text>
               </View>
@@ -117,21 +123,28 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('explore', 'Explore')}</Text>
           <View style={styles.exploreList}>
-            <TouchableOpacity style={styles.exploreItem}>
-              <Text style={styles.exploreIcon}>💲</Text>
+            <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('Flights')}>
+              <Text style={styles.exploreIcon}>💺</Text>
               <View style={styles.exploreTextContainer}>
                 <Text style={styles.exploreTitle}>{t('flightAlert.title', 'Flight Price Alerts')}</Text>
                 <Text style={styles.exploreSubtitle}>{t('flightAlert.subtitle', 'Get notifications when prices change')}</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.exploreItem}>
+            <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('Tours')}>
               <Text style={styles.exploreIcon}>📅</Text>
+              <View style={styles.exploreTextContainer}>
+                <Text style={styles.exploreTitle}>{t('tours.title', 'Tours & Deals')}</Text>
+                <Text style={styles.exploreSubtitle}>{t('tours.subtitle', 'Best-ranked tours for your budget')}</Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('Itinerary')}>
+              <Text style={styles.exploreIcon}>📋</Text>
               <View style={styles.exploreTextContainer}>
                 <Text style={styles.exploreTitle}>{t('itinerary.title', 'Itinerary')}</Text>
                 <Text style={styles.exploreSubtitle}>{t('itinerary.subtitle', 'Plan and organize your perfect trip')}</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.exploreItem}>
+            <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('Community')}>
               <Text style={styles.exploreIcon}>👥</Text>
               <View style={styles.exploreTextContainer}>
                 <Text style={styles.exploreTitle}>{t('community.title', 'Community')}</Text>

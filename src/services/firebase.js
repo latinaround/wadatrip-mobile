@@ -59,8 +59,8 @@ Notifications.setNotificationHandler({
 export const requestForToken = async () => {
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') {
-    alert('Debes habilitar las notificaciones para recibir alertas.');
-    console.log('⚠️ Permiso de notificaciones denegado.');
+    alert('Please enable notifications to receive alerts.');
+    console.log('⚠️ Notifications permission denied.');
     return null;
   }
 
@@ -77,10 +77,10 @@ export const requestForToken = async () => {
   try {
     // Obtiene el token usando el projectId de tu configuración de Firebase
     const token = (await Notifications.getExpoPushTokenAsync({ projectId: firebaseConfig.projectId })).data;
-    console.log('✅ Token de notificación (Expo):', token);
+    console.log('✅ Notification token (Expo):', token);
     return token;
   } catch (error) {
-    console.error('❌ Error al obtener el token de Expo:', error);
+    console.error('❌ Error getting Expo token:', error);
     return null;
   }
 };
@@ -91,12 +91,12 @@ export const requestForToken = async () => {
 export const setupNotificationListeners = () => {
   // Se ejecuta cuando se recibe una notificación mientras la app está en primer plano
   const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
-    console.log('📩 Notificación recibida en primer plano:', notification);
+    console.log('📩 Foreground notification received:', notification);
   });
 
   // Se ejecuta cuando un usuario toca una notificación
   const backgroundSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-    console.log('👆 Usuario interactuó con la notificación:', response);
+    console.log('👆 User interacted with notification:', response);
     // Aquí puedes agregar lógica para navegar a una pantalla específica
   });
 
