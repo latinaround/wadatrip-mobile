@@ -168,6 +168,17 @@ const WadaAgent = () => {
     });
   }, [slideAnim]);
 
+  const scrollRef = React.useRef(null);
+
+  // Auto-scroll when a new message arrives
+  useEffect(() => {
+    try {
+      if (scrollRef.current) {
+        scrollRef.current.scrollToEnd({ animated: true });
+      }
+    } catch {}
+  }, [messages.length]);
+
   const FloatingButton = React.memo(() => (
     <View style={styles.floatingContainer}>
       <Text style={styles.floatingLabel}>WadaAgent</Text>
@@ -270,11 +281,8 @@ const WadaAgent = () => {
             <ScrollView
               style={styles.messagesContainer}
               showsVerticalScrollIndicator={false}
-              ref={(ref) => {
-                if (ref) {
-                  ref.scrollToEnd({ animated: true });
-                }
-              }}
+              keyboardShouldPersistTaps="handled"
+              ref={scrollRef}
             >
               {messages.map((msg) => (
                 <View
@@ -314,11 +322,14 @@ const WadaAgent = () => {
               <TextInput
                 style={styles.textInput}
                 value={message}
-                onChangeText={setMessage}
-                placeholder="Escribe tu mensaje..."
+                onChangeText={(text) => setMessage(text)}
+                placeholder="Type your message..."
                 placeholderTextColor="#999"
                 multiline
                 maxLength={500}
+                blurOnSubmit={false}
+                returnKeyType="send"
+                onSubmitEditing={() => sendMessage()}
               />
               <TouchableOpacity
                 onPress={sendMessage}
