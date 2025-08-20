@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Keyboard
 import { searchAndRankTours } from '../services/toursService';
 import { auth, db } from '../services/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { runToursRefreshForUser } from '../services/cronMock';
 
 export default function ToursScreen() {
   const [destination, setDestination] = useState('Tokyo');
@@ -11,6 +12,7 @@ export default function ToursScreen() {
   const [decisionDays, setDecisionDays] = useState('7');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
+  const [refreshLoading, setRefreshLoading] = useState(false);
 
   const parseNumber = (v) => {
     const n = Number(String(v).replace(/[^0-9.]/g, ''));
@@ -127,14 +129,35 @@ export default function ToursScreen() {
           onChangeText={setDecisionDays}
         />
 
-        <View style={styles.actionsRow}>
-          <TouchableOpacity style={[styles.button, styles.primary]} onPress={onSearch} disabled={loading}>
-            <Text style={styles.buttonText}>{loading ? 'Searching…' : 'Search tours'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.secondary]} onPress={onSaveAlert}>
-            <Text style={styles.buttonText}>Save alert</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.actionsRow}>
+        <TouchableOpacity style={[styles.button, styles.primary]} onPress={onSearch} disabled={loading}>
+          <Text style={styles.buttonText}>{loading ? 'Searching…' : 'Search tours'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.button, styles.secondary]} onPress={onSaveAlert}>
+          <Text style={styles.buttonText}>Save alert</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: '#6c757d', marginTop: 8 }]}
+        onPress={async () => {
+          const user = auth.currentUser;
+          if (!user) return Alert.alert('Sign-in required', 'Please sign in to run refresh.');
+          setRefreshLoading(true);
+          try {
+            const count = await runToursRefreshForUser(db, user.uid);
+            Alert.alert('Refresh complete', `Updated recommendations for ${count} alert(s).`);
+          } catch (e) {
+            console.error('Refresh error', e);
+            Alert.alert('Error', 'Could not run refresh.');
+          } finally {
+            setRefreshLoading(false);
+          }
+        }}
+        disabled={refreshLoading}
+      >
+        <Text style={styles.buttonText}>{refreshLoading ? 'Refreshing…' : 'Run refresh (dev)'}</Text>
+      </TouchableOpacity>
       </View>
 
       <FlatList
