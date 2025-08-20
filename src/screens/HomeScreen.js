@@ -11,10 +11,12 @@ import { useTranslation } from 'react-i18next';
 import WadaAgent from '../components/WadaAgent';
 import flightPriceMonitor from '../services/flightPriceMonitor';
 import { signOut } from 'firebase/auth';
-import { auth } from '../services/firebase';
+import { auth, db } from '../services/firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 const HomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
+  const [activeCount, setActiveCount] = React.useState(0);
 
   const handleLogout = async () => {
     try {
@@ -64,6 +66,25 @@ const HomeScreen = ({ navigation }) => {
     // --- Fin: Demostración del sistema de alertas de precios ---
   }, []);
 
+  // Count active alerts (flights + tours)
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) { setActiveCount(0); return; }
+    const qFlights = query(collection(db, 'flightAlerts'), where('uid', '==', uid), where('status', 'in', ['active', null]));
+    const qTours = query(collection(db, 'tourAlerts'), where('uid', '==', uid), where('status', 'in', ['active', null]));
+    const unsub1 = onSnapshot(qFlights, (snap) => {
+      const flights = snap.size || 0;
+      setActiveCount((prev) => flights + (prev._tours || 0));
+      setActiveCount.countFlights = flights; // store meta on function object (hacky but local)
+    });
+    const unsub2 = onSnapshot(qTours, (snap) => {
+      const tours = snap.size || 0;
+      const flights = setActiveCount.countFlights || 0;
+      setActiveCount(flights + tours);
+    });
+    return () => { unsub1(); unsub2(); };
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
@@ -99,7 +120,7 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.quickActionIcon}>🔔</Text>
               </View>
               <Text style={styles.quickActionText}>{t('flightAlert.title', 'Price Alerts')}</Text>
-              <Text style={styles.quickActionSubtitle}>{t('flightAlert.active', { count: 0 })}</Text>
+              <Text style={styles.quickActionSubtitle}>{`Active: ${activeCount}`}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickActionButton}
@@ -117,8 +138,13 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.quickActionText}>{t('community.title', 'Explore')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickActionButton} onPress={() => navigation.navigate('MyAlerts')}>
-              <View style={[styles.quickActionIconContainer, { backgroundColor: '#3a86ff' }]}>
+              <View style={[styles.quickActionIconContainer, { backgroundColor: '#3a86ff' }]}> 
                 <Text style={styles.quickActionIcon}>🔔</Text>
+                {activeCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{activeCount}</Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.quickActionText}>My Alerts</Text>
             </TouchableOpacity>
@@ -296,6 +322,19 @@ const styles = StyleSheet.create({
     color: '#6c757d',
     marginTop: 4,
   },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#e63946',
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 });
 
 export default HomeScreen;

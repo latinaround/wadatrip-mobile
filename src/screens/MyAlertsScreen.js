@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Platform } from 'react-native';
 import { auth, db } from '../services/firebase';
-import { collection, onSnapshot, query, where, orderBy, deleteDoc, doc, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, deleteDoc, doc, limit, updateDoc } from 'firebase/firestore';
+import { Linking } from 'react-native';
 
 function formatDate(ts) {
   try {
@@ -70,6 +71,16 @@ export default function MyAlertsScreen() {
       <Text style={styles.meta}>Budget: ${item.budget} · Flex: {item.maxWaitHours}h · {item.status || 'active'}</Text>
       <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
       <View style={styles.rowRight}>
+        <TouchableOpacity
+          style={[styles.btn, item.status === 'paused' ? styles.resume : styles.pause]}
+          onPress={async () => {
+            try {
+              await updateDoc(doc(db, 'flightAlerts', item.id), { status: item.status === 'paused' ? 'active' : 'paused' });
+            } catch (e) { Alert.alert('Error', 'Could not update alert'); }
+          }}
+        >
+          <Text style={styles.btnText}>{item.status === 'paused' ? 'Resume' : 'Pause'}</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={[styles.btn, styles.delete]} onPress={() => onDelete('flight', item.id)}>
           <Text style={styles.btnText}>Delete</Text>
         </TouchableOpacity>
@@ -83,6 +94,16 @@ export default function MyAlertsScreen() {
       <Text style={styles.meta}>Budget: {item.budgetMin ? `$${item.budgetMin}` : '—'} – {item.budgetMax ? `$${item.budgetMax}` : '—'} · Window: {item.decisionDays || '—'}d · {item.status || 'active'}</Text>
       <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
       <View style={styles.rowRight}>
+        <TouchableOpacity
+          style={[styles.btn, item.status === 'paused' ? styles.resume : styles.pause]}
+          onPress={async () => {
+            try {
+              await updateDoc(doc(db, 'tourAlerts', item.id), { status: item.status === 'paused' ? 'active' : 'paused' });
+            } catch (e) { Alert.alert('Error', 'Could not update alert'); }
+          }}
+        >
+          <Text style={styles.btnText}>{item.status === 'paused' ? 'Resume' : 'Pause'}</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={[styles.btn, styles.delete]} onPress={() => onDelete('tour', item.id)}>
           <Text style={styles.btnText}>Delete</Text>
         </TouchableOpacity>
@@ -95,7 +116,13 @@ export default function MyAlertsScreen() {
       <Text style={styles.title}>Recommendations for {item.destination}</Text>
       <Text style={styles.meta}>{formatDate(item.createdAt)} · {item.recommendations?.length || 0} items</Text>
       {(item.recommendations || []).slice(0, 3).map((r) => (
-        <Text key={r.id} style={styles.recLine}>• {r.title} — ${r.price} — ⭐ {r.rating} ({r.reviews})</Text>
+        <TouchableOpacity
+          key={r.id}
+          onPress={() => r.url ? Linking.openURL(r.url) : null}
+          disabled={!r.url}
+        >
+          <Text style={[styles.recLine, !r.url && { opacity: 0.6 }]}>• {r.title} — ${r.price} — ⭐ {r.rating} ({r.reviews}){r.url ? ' ↗' : ''}</Text>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -152,6 +179,7 @@ const styles = StyleSheet.create({
   rowRight: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 },
   btn: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8 },
   delete: { backgroundColor: '#e63946' },
+  pause: { backgroundColor: '#ffbe0b', marginRight: 8 },
+  resume: { backgroundColor: '#2a9d8f', marginRight: 8 },
   btnText: { color: '#fff', fontWeight: '700' },
 });
-
