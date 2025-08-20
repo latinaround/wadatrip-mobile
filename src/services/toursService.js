@@ -4,14 +4,14 @@
 // Mock catalog. Later, replace with real API fetch (Tripadvisor/Expedia/etc.)
 const MOCK_TOURS = [
   // Tokyo
-  { id: 't1', city: 'Tokyo', title: 'Tokyo Highlights Full-Day Tour', provider: 'MockAdvisor', price: 120, rating: 4.8, reviews: 1340, durationHours: 8, categories: ['city', 'culture'], discount: 0.1 },
-  { id: 't2', city: 'Tokyo', title: 'Mt. Fuji and Hakone Day Trip', provider: 'MockAdvisor', price: 140, rating: 4.7, reviews: 980, durationHours: 10, categories: ['nature', 'day-trip'], discount: 0.05 },
-  { id: 't3', city: 'Tokyo', title: 'Tsukiji Market + Sushi Workshop', provider: 'MockAdvisor', price: 95, rating: 4.6, reviews: 520, durationHours: 4, categories: ['food'], discount: 0.0 },
-  { id: 't4', city: 'Tokyo', title: 'Akihabara Anime & Tech Walk', provider: 'MockAdvisor', price: 45, rating: 4.5, reviews: 410, durationHours: 3, categories: ['city', 'pop-culture'], discount: 0.15 },
+  { id: 't1', city: 'Tokyo', title: 'Tokyo Highlights Full-Day Tour', provider: 'MockAdvisor', price: 120, rating: 4.8, reviews: 1340, durationHours: 8, categories: ['city', 'culture'], discount: 0.1, url: 'https://example.com/tours/tokyo-highlights' },
+  { id: 't2', city: 'Tokyo', title: 'Mt. Fuji and Hakone Day Trip', provider: 'MockAdvisor', price: 140, rating: 4.7, reviews: 980, durationHours: 10, categories: ['nature', 'day-trip'], discount: 0.05, url: 'https://example.com/tours/mt-fuji-hakone' },
+  { id: 't3', city: 'Tokyo', title: 'Tsukiji Market + Sushi Workshop', provider: 'MockAdvisor', price: 95, rating: 4.6, reviews: 520, durationHours: 4, categories: ['food'], discount: 0.0, url: 'https://example.com/tours/tsukiji-sushi' },
+  { id: 't4', city: 'Tokyo', title: 'Akihabara Anime & Tech Walk', provider: 'MockAdvisor', price: 45, rating: 4.5, reviews: 410, durationHours: 3, categories: ['city', 'pop-culture'], discount: 0.15, url: 'https://example.com/tours/akihabara-walk' },
 
   // San Francisco
-  { id: 's1', city: 'San Francisco', title: 'Alcatraz + City Tour', provider: 'MockAdvisor', price: 135, rating: 4.7, reviews: 2100, durationHours: 6, categories: ['city', 'history'], discount: 0.05 },
-  { id: 's2', city: 'San Francisco', title: 'Wine Country Day Trip', provider: 'MockAdvisor', price: 160, rating: 4.6, reviews: 870, durationHours: 9, categories: ['wine', 'day-trip'], discount: 0.1 },
+  { id: 's1', city: 'San Francisco', title: 'Alcatraz + City Tour', provider: 'MockAdvisor', price: 135, rating: 4.7, reviews: 2100, durationHours: 6, categories: ['city', 'history'], discount: 0.05, url: 'https://example.com/tours/alcatraz-city' },
+  { id: 's2', city: 'San Francisco', title: 'Wine Country Day Trip', provider: 'MockAdvisor', price: 160, rating: 4.6, reviews: 870, durationHours: 9, categories: ['wine', 'day-trip'], discount: 0.1, url: 'https://example.com/tours/wine-country' },
 ];
 
 // Score components: price fit, rating, popularity, discount

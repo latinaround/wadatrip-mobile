@@ -169,6 +169,13 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.exploreSubtitle}>{t('tours.subtitle', 'Best-ranked tours for your budget')}</Text>
               </View>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('TopTours')}>
+              <Text style={styles.exploreIcon}>🏆</Text>
+              <View style={styles.exploreTextContainer}>
+                <Text style={styles.exploreTitle}>Top Tours</Text>
+                <Text style={styles.exploreSubtitle}>Your latest personalized recommendations</Text>
+              </View>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('Itinerary')}>
               <Text style={styles.exploreIcon}>📋</Text>
               <View style={styles.exploreTextContainer}>

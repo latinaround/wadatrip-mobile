@@ -17,6 +17,7 @@ import ToursScreen from "./src/screens/ToursScreen";
 import FlightsScreen from "./src/screens/FlightsScreen";
 import CommunityScreen from "./src/screens/CommunityScreen";
 import MyAlertsScreen from "./src/screens/MyAlertsScreen";
+import TopToursScreen from "./src/screens/TopToursScreen";
 
 // Components
 import WadaAgent from "./src/components/WadaAgent";
@@ -70,6 +71,7 @@ export default function App() {
             <Stack.Screen name="Flights" component={FlightsScreen} />
             <Stack.Screen name="Community" component={CommunityScreen} />
             <Stack.Screen name="MyAlerts" component={MyAlertsScreen} />
+            <Stack.Screen name="TopTours" component={TopToursScreen} />
           </>
         ) : (
           // Usuario no logueado → Auth + Registro
