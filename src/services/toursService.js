@@ -15,7 +15,7 @@ const MOCK_TOURS = [
 ];
 
 // Score components: price fit, rating, popularity, discount
-function scoreTour(tour, budgetMin, budgetMax) {
+export function scoreTour(tour, budgetMin, budgetMax) {
   const price = tour.price;
   const rating = tour.rating; // out of 5
   const popularity = Math.log10(1 + tour.reviews); // diminishing returns
@@ -70,4 +70,3 @@ export async function fetchFromProviders(query) {
 }
 
 export default { searchAndRankTours, fetchFromProviders };
-

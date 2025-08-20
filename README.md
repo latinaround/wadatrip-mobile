@@ -256,3 +256,31 @@ Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) par
 Para soporte técnico o preguntas, contacta a:
 - Email: support@wadatrip.com
 - Website: https://wadatrip.com
+## Data Model (Firestore)
+
+- `flightAlerts`: { uid, origin, destination, budget, maxWaitHours, status, createdAt }
+- `tourAlerts`: { uid, destination, budgetMin, budgetMax, decisionDays, status, createdAt }
+- `tourSearches`: { uid, destination, budgetMin, budgetMax, decisionDays, resultCount, createdAt }
+- `tourRecommendations`: { uid, alertId, destination, recommendations[], createdAt }
+- `communityMessages`: { uid, displayName, location, text, createdAt }
+
+## Tours Providers & Aggregation
+
+- Provider adapters in `src/services/providers/`:
+  - `tripadvisorProvider.js`, `expediaProvider.js` (placeholders)
+  - Standard shape via `providerInterfaces.js` (`normalizeTour`)
+- Aggregation & ranking:
+  - `src/services/toursAggregator.js` merges providers and ranks using `scoreTour` from `toursService`.
+  - `toursService.js` keeps local MOCK data as fallback.
+
+## Dev Cron Mock
+
+For local/dev, simulate scheduled updates for tour alerts:
+
+```js
+import { runToursRefreshForUser } from './src/services/cronMock';
+import { db, auth } from './src/services/firebase';
+await runToursRefreshForUser(db, auth.currentUser.uid);
+```
+
+Writes top recommendations to `tourRecommendations` per alert.
