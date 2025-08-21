@@ -55,19 +55,59 @@ def check_alert(alertId: Optional[str] = None, origin: Optional[str] = None, des
     if not (origin and destination and budget is not None):
         raise HTTPException(status_code=400, detail="missing parameters")
 
-    history = flight_store.fetch_history_prices(origin, destination, alert.get("departureDate") if alertId else None)
+    history = flight_store.fetch_history_prices(origin, destination, (alert.get("departureDate") if alertId else None) if 'alert' in locals() and alert else None)
     res = predict_should_buy(history, float(budget), float(maxWaitHours))
     triggered = res.get("withinBudget") or res.get("recommendation") == "buy_now"
     signal_id = None
     if triggered:
-        signal_id = flight_store.save_signal({
+        payload = {
             "alertId": alertId,
             "origin": origin,
             "destination": destination,
             "budget": float(budget),
             "result": res,
-        })
+        }
+        if alertId and alert:
+            payload["uid"] = alert.get("uid")
+        signal_id = flight_store.save_signal(payload)
+        # Save notification stub (frontend can pick and send push/email)
+        try:
+            flight_store.save_notification({
+                "uid": (alert.get("uid") if alertId and alert else None),
+                "type": "flight_alert",
+                "title": "Flight Deal Found",
+                "body": f"{origin} → {destination} appears favorable.",
+                "meta": {"origin": origin, "destination": destination, "budget": float(budget), "result": res, "signalId": signal_id},
+            })
+        except Exception:
+            pass
     return {"ok": True, "result": res, "triggered": triggered, "signalId": signal_id}
+
+
+@app.post("/alerts/run_checks")
+def run_checks():
+    alerts = flight_store.get_active_alerts()
+    results = []
+    for a in alerts:
+        try:
+            history = flight_store.fetch_history_prices(a.get("origin"), a.get("destination"), a.get("departureDate"))
+            res = predict_should_buy(history, float(a.get("budget")), float(a.get("maxWaitHours", 168)))
+            triggered = res.get("withinBudget") or res.get("recommendation") == "buy_now"
+            signal_id = None
+            if triggered:
+                payload = {"alertId": a.get("_id"), "uid": a.get("uid"), "origin": a.get("origin"), "destination": a.get("destination"), "budget": float(a.get("budget")), "result": res}
+                signal_id = flight_store.save_signal(payload)
+                flight_store.save_notification({
+                    "uid": a.get("uid"),
+                    "type": "flight_alert",
+                    "title": "Flight Deal Found",
+                    "body": f"{a.get('origin')} → {a.get('destination')} appears favorable.",
+                    "meta": {"origin": a.get("origin"), "destination": a.get("destination"), "budget": float(a.get("budget")), "result": res, "signalId": signal_id},
+                })
+            results.append({"alertId": a.get("_id"), "triggered": triggered, "result": res, "signalId": signal_id})
+        except Exception as e:
+            results.append({"alertId": a.get("_id"), "error": str(e)})
+    return {"ok": True, "count": len(results), "results": results}
 
 
 @app.get("/health")

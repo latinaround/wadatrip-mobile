@@ -15,10 +15,11 @@ function formatDate(ts) {
 }
 
 export default function MyAlertsScreen() {
-  const [tab, setTab] = useState('flights'); // 'flights' | 'tours' | 'recs'
+  const [tab, setTab] = useState('flights'); // 'flights' | 'tours' | 'recs' | 'signals'
   const [flights, setFlights] = useState([]);
   const [tours, setTours] = useState([]);
   const [recs, setRecs] = useState([]);
+  const [signals, setSignals] = useState([]);
 
   const uid = auth.currentUser?.uid || null;
 
@@ -51,6 +52,17 @@ export default function MyAlertsScreen() {
       const rows = [];
       snap.forEach((d) => rows.push({ id: d.id, ...d.data() }));
       setRecs(rows);
+    });
+    return () => unsub();
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    const q = query(collection(db, 'userNotifications'), where('uid', '==', uid), orderBy('createdAt', 'desc'), limit(50));
+    const unsub = onSnapshot(q, (snap) => {
+      const rows = [];
+      snap.forEach((d) => rows.push({ id: d.id, ...d.data() }));
+      setSignals(rows);
     });
     return () => unsub();
   }, [uid]);
@@ -127,8 +139,17 @@ export default function MyAlertsScreen() {
     </View>
   );
 
-  const data = tab === 'flights' ? flights : tab === 'tours' ? tours : recs;
-  const renderer = tab === 'flights' ? renderFlight : tab === 'tours' ? renderTour : renderRec;
+  const renderSignal = ({ item }) => (
+    <View style={styles.card}>
+      <Text style={styles.title}>{item.title || 'Flight Alert'}</Text>
+      <Text style={styles.meta}>{item.meta?.origin} → {item.meta?.destination}</Text>
+      <Text style={styles.meta}>Budget ${item.meta?.budget} · Recommendation {item.meta?.result?.recommendation}</Text>
+      <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
+    </View>
+  );
+
+  const data = tab === 'flights' ? flights : tab === 'tours' ? tours : tab === 'recs' ? recs : signals;
+  const renderer = tab === 'flights' ? renderFlight : tab === 'tours' ? renderTour : tab === 'recs' ? renderRec : renderSignal;
 
   return (
     <View style={styles.container}>
@@ -142,6 +163,9 @@ export default function MyAlertsScreen() {
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, tab === 'recs' && styles.tabActive]} onPress={() => setTab('recs')}>
           <Text style={[styles.tabText, tab === 'recs' && styles.tabTextActive]}>Recommendations</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tab, tab === 'signals' && styles.tabActive]} onPress={() => setTab('signals')}>
+          <Text style={[styles.tabText, tab === 'signals' && styles.tabTextActive]}>Signals</Text>
         </TouchableOpacity>
       </View>
 

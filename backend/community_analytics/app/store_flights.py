@@ -25,6 +25,15 @@ class FlightStore:
         ref.set({**signal, "createdAt": firestore.SERVER_TIMESTAMP})
         return ref.id
 
+    def get_active_alerts(self) -> List[Dict[str, Any]]:
+        q = self.db.collection("flightAlertsBackend").where("status", "==", "active")
+        return [d.to_dict() | {"_id": d.id} for d in q.stream()]
+
+    def save_notification(self, notif: Dict[str, Any]) -> str:
+        ref = self.db.collection("userNotifications").document()
+        ref.set({**notif, "createdAt": firestore.SERVER_TIMESTAMP})
+        return ref.id
+
     def fetch_history_prices(self, origin: str, destination: str, departure: Optional[str], since_hours: int = 720) -> List[Dict[str, Any]]:
         # Use flightMonitorEvents as a source of observed/predicted prices
         since = datetime.utcnow() - timedelta(hours=since_hours)
@@ -42,4 +51,3 @@ class FlightStore:
                 rows.append({"ts": x.get("createdAt"), "price": float(price)})
         rows.sort(key=lambda r: r["ts"].timestamp() if hasattr(r["ts"], "timestamp") else 0)
         return rows
-
