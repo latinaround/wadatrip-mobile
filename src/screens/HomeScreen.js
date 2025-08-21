@@ -189,6 +189,13 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.exploreSubtitle}>{t('community.subtitle', 'Connect with fellow travelers')}</Text>
               </View>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('CommunityInsights')}>
+              <Text style={styles.exploreIcon}>🗺️</Text>
+              <View style={styles.exploreTextContainer}>
+                <Text style={styles.exploreTitle}>Community Insights</Text>
+                <Text style={styles.exploreSubtitle}>Sentiment & topics by location</Text>
+              </View>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.exploreItem} onPress={() => navigation.navigate('MyAlerts')}>
               <Text style={styles.exploreIcon}>🔔</Text>
               <View style={styles.exploreTextContainer}>
