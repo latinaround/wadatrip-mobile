@@ -80,3 +80,17 @@ def get_topics(location: str = Query(...), sinceDays: int = Query(30)):
     topics = sorted([{ "label": k, "count": v } for k, v in label_counts.items()], key=lambda x: -x["count"])
     return {"ok": True, "topics": topics, "count": len(texts)}
 
+
+@app.get("/analysis/locations")
+def get_locations_overview(sinceDays: int = Query(7)):
+    since = datetime.utcnow() - timedelta(days=sinceDays)
+    rows = store.fetch_analysis_since(since)
+    by_loc: Dict[str, Dict[str, int]] = {}
+    for r in rows:
+        loc = r.get("location") or "unknown"
+        s = (r.get("sentiment") or "unknown").lower()
+        if loc not in by_loc:
+            by_loc[loc] = {}
+        by_loc[loc][s] = by_loc[loc].get(s, 0) + 1
+    return {"ok": True, "sinceDays": sinceDays, "locations": by_loc}
+

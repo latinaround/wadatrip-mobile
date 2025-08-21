@@ -20,6 +20,10 @@ export async function getTopics(location, sinceDays = 30) {
   return api(`/topics?location=${encodeURIComponent(location)}&sinceDays=${sinceDays}`);
 }
 
+export async function getLocationsOverview(sinceDays = 7) {
+  return api(`/analysis/locations?sinceDays=${sinceDays}`);
+}
+
 export async function ingestComment({ uid, location, text, lat, lng, createdAt }) {
   return api('/ingest', {
     method: 'POST',
@@ -27,5 +31,4 @@ export async function ingestComment({ uid, location, text, lat, lng, createdAt }
   });
 }
 
-export default { getAnalysis, getTopics, ingestComment };
-
+export default { getAnalysis, getTopics, getLocationsOverview, ingestComment };

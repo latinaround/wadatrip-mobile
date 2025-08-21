@@ -19,6 +19,7 @@ import CommunityScreen from "./src/screens/CommunityScreen";
 import MyAlertsScreen from "./src/screens/MyAlertsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import CommunityInsightsScreen from "./src/screens/CommunityInsightsScreen";
+import CommunityMapScreen from "./src/screens/CommunityMapScreen";
 
 // Components
 import WadaAgent from "./src/components/WadaAgent";
@@ -72,6 +73,7 @@ export default function App() {
             <Stack.Screen name="Flights" component={FlightsScreen} />
             <Stack.Screen name="Community" component={CommunityScreen} />
             <Stack.Screen name="CommunityInsights" component={CommunityInsightsScreen} />
+            <Stack.Screen name="CommunityMap" component={CommunityMapScreen} />
             <Stack.Screen name="MyAlerts" component={MyAlertsScreen} />
             {false && <Stack.Screen name="TopTours" component={() => null} />}
             <Stack.Screen name="Profile" component={ProfileScreen} />

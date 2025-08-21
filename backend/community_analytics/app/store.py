@@ -29,6 +29,13 @@ class Store:
             rows.append(x)
         return rows
 
+    def fetch_analysis_since(self, since: datetime) -> List[Dict[str, Any]]:
+        q = self.db.collection("communityAnalysis").where("createdAt", ">=", since)
+        rows = []
+        for d in q.stream():
+            rows.append(d.to_dict())
+        return rows
+
     def fetch_texts(self, location: str, since: datetime) -> List[str]:
         q = (
             self.db.collection("communityMessages")
@@ -42,4 +49,3 @@ class Store:
             if t:
                 out.append(t)
         return out
-

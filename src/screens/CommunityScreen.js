@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, I
 import { auth, db } from '../services/firebase';
 import { addDoc, collection, onSnapshot, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { getUserProfile } from '../services/userProfile';
+import { ingestComment } from '../services/communityAnalyticsApi';
 
 export default function CommunityScreen() {
   const [location, setLocation] = useState('Tokyo');
@@ -33,7 +34,7 @@ export default function CommunityScreen() {
     const user = auth.currentUser;
     if (!text.trim()) return;
     try {
-      await addDoc(collection(db, 'communityMessages'), {
+      const docRef = await addDoc(collection(db, 'communityMessages'), {
         uid: user?.uid || null,
         displayName: profile?.displayName || user?.displayName || (user?.email ? user.email.split('@')[0] : 'traveler'),
         photoURL: profile?.photoURL || user?.photoURL || null,
@@ -41,6 +42,10 @@ export default function CommunityScreen() {
         text: text.trim(),
         createdAt: serverTimestamp(),
       });
+      // Fire-and-forget analytics ingest (non-blocking)
+      try {
+        await ingestComment({ uid: user?.uid || null, location, text: text.trim() });
+      } catch (e) { /* ignore analytics errors */ }
       setText('');
     } catch (e) {
       console.error('Error enviando mensaje', e);
