@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, Image, Switch } from 'react-native';
 import { auth, db } from '../services/firebase';
 import { addDoc, collection, onSnapshot, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { getUserProfile } from '../services/userProfile';
@@ -12,24 +12,29 @@ export default function CommunityScreen() {
   const [messages, setMessages] = useState([]);
   const [profile, setProfile] = useState(null);
   const [coords, setCoords] = useState(null);
+  const [shareLocation, setShareLocation] = useState(true);
 
   useEffect(() => {
     (async () => {
       const u = auth.currentUser;
       if (u?.uid) setProfile((await getUserProfile(u.uid)) || { displayName: u.displayName, photoURL: u.photoURL });
     })();
-    // Request location permission and capture current coords
-    (async () => {
-      try {
-        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const pos = await ExpoLocation.getCurrentPositionAsync({});
-          setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+    // Request location permission and capture current coords (opt-in)
+    if (shareLocation) {
+      (async () => {
+        try {
+          const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const pos = await ExpoLocation.getCurrentPositionAsync({});
+            setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          }
+        } catch (e) {
+          // ignore
         }
-      } catch (e) {
-        // ignore
-      }
-    })();
+      })();
+    } else {
+      setCoords(null);
+    }
     if (!location) return;
     const q = query(
       collection(db, 'communityMessages'),
@@ -42,7 +47,7 @@ export default function CommunityScreen() {
       setMessages(rows);
     });
     return () => unsub();
-  }, [location]);
+  }, [location, shareLocation]);
 
   const send = async () => {
     const user = auth.currentUser;
@@ -97,6 +102,10 @@ export default function CommunityScreen() {
       />
 
       <View style={styles.row}>
+        <View style={styles.shareRow}>
+          <Text style={styles.shareLabel}>Share Location</Text>
+          <Switch value={shareLocation} onValueChange={setShareLocation} />
+        </View>
         <TextInput style={[styles.input, { flex: 1 }]} placeholder="Write a message" value={text} onChangeText={setText} />
         <TouchableOpacity style={styles.send} onPress={send}><Text style={{ color: '#fff', fontWeight: '700' }}>Send</Text></TouchableOpacity>
       </View>
