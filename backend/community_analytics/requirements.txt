@@ -12,3 +12,4 @@ scikit-learn==1.5.1
 pandas==2.2.2
 numpy==1.26.4
 python-dateutil==2.9.0
+statsmodels==0.14.2

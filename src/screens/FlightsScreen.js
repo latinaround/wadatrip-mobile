@@ -4,6 +4,7 @@ import { auth, db } from '../services/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import flightPriceMonitor from '../services/flightPriceMonitor';
 import { getFlightAdvice } from '../services/mlFlightPredictor';
+import { createAlert as createBackendAlert, checkAlert as checkBackendAlert } from '../services/flightAlertsApi';
 
 export default function FlightsScreen() {
   const [origin, setOrigin] = useState('San Francisco');
@@ -12,6 +13,7 @@ export default function FlightsScreen() {
   const [date, setDate] = useState(''); // opcional
   const [flexHours, setFlexHours] = useState('168'); // 1 semana por defecto
   const [advice, setAdvice] = useState(null);
+  const [backendAlertId, setBackendAlertId] = useState(null);
 
   const parseNumber = (v) => {
     const n = Number(String(v).replace(/[^0-9.]/g, ''));
@@ -53,6 +55,11 @@ export default function FlightsScreen() {
       }
 
       Alert.alert('Done', 'Your flight alert has been created');
+      // Create backend alert
+      try {
+        const res = await createBackendAlert({ origin, destination, budget: b, departureDate: date || null, maxWaitHours: hours, uid: user?.uid || null });
+        if (res?.alertId) setBackendAlertId(res.alertId);
+      } catch (e) { /* ignore */ }
     } catch (e) {
       console.error('Error creating flight alert', e);
       Alert.alert('Error', 'Could not create the alert');
@@ -111,6 +118,17 @@ export default function FlightsScreen() {
       <TouchableOpacity style={[styles.button, styles.primary]} onPress={onCreateAlert}>
         <Text style={styles.buttonText}>Create alert</Text>
       </TouchableOpacity>
+
+      {backendAlertId && (
+        <TouchableOpacity style={[styles.button, { backgroundColor: '#3a86ff', marginTop: 8 }]} onPress={async () => {
+          try {
+            const res = await checkBackendAlert({ alertId: backendAlertId });
+            Alert.alert('Check', res.triggered ? 'Alert triggered!' : 'No trigger yet');
+          } catch (e) { Alert.alert('Error', 'Check failed'); }
+        }}>
+          <Text style={styles.buttonText}>Check backend alert</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

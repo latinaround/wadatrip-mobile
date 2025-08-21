@@ -6,11 +6,14 @@ import os
 
 from .processing import Analyzer
 from .store import Store
+from .store_flights import FlightStore
+from .price_predictor import predict_should_buy
 
 app = FastAPI(title="WadaTrip Community Analytics", version="0.1.0")
 
 store = Store(project_id=os.getenv("FIRESTORE_PROJECT_ID"))
 analyzer = Analyzer(lang=os.getenv("ANALYSIS_LANG", "en"))
+flight_store = FlightStore(project_id=os.getenv("FIRESTORE_PROJECT_ID"))
 
 
 class IngestPayload(BaseModel):
@@ -20,6 +23,51 @@ class IngestPayload(BaseModel):
     lat: Optional[float] = None
     lng: Optional[float] = None
     createdAt: Optional[datetime] = None
+
+
+class CreateAlertPayload(BaseModel):
+    uid: Optional[str] = None
+    origin: str
+    destination: str
+    budget: float
+    departureDate: Optional[str] = None
+    maxWaitHours: int = 168
+
+
+@app.post("/alerts/create")
+def create_alert(p: CreateAlertPayload):
+    alert = p.model_dump()
+    alert_id = flight_store.create_alert(alert)
+    return {"ok": True, "alertId": alert_id}
+
+
+@app.post("/alerts/check")
+def check_alert(alertId: Optional[str] = None, origin: Optional[str] = None, destination: Optional[str] = None, budget: Optional[float] = None, maxWaitHours: int = 168):
+    """Checks one alert by ID or an ad-hoc alert by params. If buy_now/within_budget, writes a signal doc."""
+    if alertId:
+        alert = flight_store.get_alert(alertId)
+        if not alert:
+            raise HTTPException(status_code=404, detail="alert not found")
+        origin = alert.get("origin")
+        destination = alert.get("destination")
+        budget = float(alert.get("budget"))
+        maxWaitHours = int(alert.get("maxWaitHours", maxWaitHours))
+    if not (origin and destination and budget is not None):
+        raise HTTPException(status_code=400, detail="missing parameters")
+
+    history = flight_store.fetch_history_prices(origin, destination, alert.get("departureDate") if alertId else None)
+    res = predict_should_buy(history, float(budget), float(maxWaitHours))
+    triggered = res.get("withinBudget") or res.get("recommendation") == "buy_now"
+    signal_id = None
+    if triggered:
+        signal_id = flight_store.save_signal({
+            "alertId": alertId,
+            "origin": origin,
+            "destination": destination,
+            "budget": float(budget),
+            "result": res,
+        })
+    return {"ok": True, "result": res, "triggered": triggered, "signalId": signal_id}
 
 
 @app.get("/health")
