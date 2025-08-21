@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, Alert, Linking } from 'react-native';
 import { searchAndRankTours, topMockTours } from '../services/toursService';
 import { auth, db } from '../services/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { runToursRefreshForUser } from '../services/cronMock';
 import { onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
+import { useNavigation } from '@react-navigation/native';
 
 export default function ToursScreen() {
+  const navigation = useNavigation();
   const [destination, setDestination] = useState('Tokyo');
   const [budgetMin, setBudgetMin] = useState('50');
   const [budgetMax, setBudgetMax] = useState('600');
@@ -73,6 +75,7 @@ export default function ToursScreen() {
         await addDoc(collection(db, 'tourSearches'), {
           uid: user?.uid || null,
           destination: anywhere ? 'Anywhere' : destination,
+          fromLocation: fromLocation || null,
           budgetMin: min ?? null,
           budgetMax: max ?? null,
           decisionDays: parseNumber(decisionDays) || null,
@@ -99,6 +102,7 @@ export default function ToursScreen() {
       await addDoc(collection(db, 'tourAlerts'), {
         uid: user.uid,
         destination,
+        fromLocation: fromLocation || null,
         budgetMin: min,
         budgetMax: max,
         decisionDays: days,
@@ -124,6 +128,17 @@ export default function ToursScreen() {
         {item.categories?.map((c) => (
           <Text key={c} style={styles.tag}>#{c}</Text>
         ))}
+      </View>
+      <View style={{ flexDirection: 'row', marginTop: 8 }}>
+        <TouchableOpacity style={[styles.button, styles.primary]} onPress={() => item.url && Linking.openURL(item.url)}>
+          <Text style={styles.buttonText}>Details</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.button, { backgroundColor: '#3a86ff', marginLeft: 8 }]} onPress={() => {
+          const amount = Math.max(1, Math.round(item.price * 100));
+          navigation.navigate('Payment', { amount, currency: 'usd', description: `Tour: ${item.title}` });
+        }}>
+          <Text style={styles.buttonText}>Book</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

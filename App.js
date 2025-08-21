@@ -20,6 +20,7 @@ import MyAlertsScreen from "./src/screens/MyAlertsScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import CommunityInsightsScreen from "./src/screens/CommunityInsightsScreen";
 import CommunityMapScreen from "./src/screens/CommunityMapScreen";
+import PaymentScreen from "./src/screens/PaymentScreen";
 
 // Components
 import WadaAgent from "./src/components/WadaAgent";
@@ -77,6 +78,7 @@ export default function App() {
             <Stack.Screen name="MyAlerts" component={MyAlertsScreen} />
             {false && <Stack.Screen name="TopTours" component={() => null} />}
             <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="Payment" component={PaymentScreen} />
           </>
         ) : (
           // Usuario no logueado → Auth + Registro

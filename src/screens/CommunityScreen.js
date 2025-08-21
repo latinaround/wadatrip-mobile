@@ -4,7 +4,9 @@ import { auth, db } from '../services/firebase';
 import { addDoc, collection, onSnapshot, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { getUserProfile } from '../services/userProfile';
 import { ingestComment } from '../services/communityAnalyticsApi';
-import * as ExpoLocation from 'expo-location';
+// Optional location: lazy-require to avoid bundling error if not installed
+let ExpoLocation = null;
+try { ExpoLocation = require('expo-location'); } catch (e) { ExpoLocation = null; }
 
 export default function CommunityScreen() {
   const [location, setLocation] = useState('Tokyo');
@@ -20,7 +22,7 @@ export default function CommunityScreen() {
       if (u?.uid) setProfile((await getUserProfile(u.uid)) || { displayName: u.displayName, photoURL: u.photoURL });
     })();
     // Request location permission and capture current coords (opt-in)
-    if (shareLocation) {
+    if (shareLocation && ExpoLocation) {
       (async () => {
         try {
           const { status } = await ExpoLocation.requestForegroundPermissionsAsync();

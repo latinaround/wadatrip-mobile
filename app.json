@@ -46,6 +46,7 @@
       "expo-apple-authentication",
       "expo-font",
       "expo-localization",
+      "@stripe/stripe-react-native",
       [
         "expo-notifications",
         {
@@ -62,6 +63,9 @@
         "webClientId": "981114942208-lr5aqqov1ifftioc462ut45sadvvjusd.apps.googleusercontent.com",
         "androidClientId": "981114942208-8hsf2u8833vlpuia4l9jmeus9sdd650p.apps.googleusercontent.com",
         "iosClientId": ""
+      },
+      "stripe": {
+        "publishableKey": "pk_test_REPLACE_ME"
       }
     }
   }

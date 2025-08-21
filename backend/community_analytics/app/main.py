@@ -8,12 +8,14 @@ from .processing import Analyzer
 from .store import Store
 from .store_flights import FlightStore
 from .price_predictor import predict_should_buy
+from .payments import router as payments_router
 
 app = FastAPI(title="WadaTrip Community Analytics", version="0.1.0")
 
 store = Store(project_id=os.getenv("FIRESTORE_PROJECT_ID"))
 analyzer = Analyzer(lang=os.getenv("ANALYSIS_LANG", "en"))
 flight_store = FlightStore(project_id=os.getenv("FIRESTORE_PROJECT_ID"))
+app.include_router(payments_router)
 
 
 class IngestPayload(BaseModel):
