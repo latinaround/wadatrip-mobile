@@ -342,7 +342,7 @@ const WadaAgent = () => {
 const styles = StyleSheet.create({
   floatingContainer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 96,
     right: 20,
     alignItems: 'center',
     zIndex: 1000,

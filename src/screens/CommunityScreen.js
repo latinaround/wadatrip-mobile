@@ -4,17 +4,31 @@ import { auth, db } from '../services/firebase';
 import { addDoc, collection, onSnapshot, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { getUserProfile } from '../services/userProfile';
 import { ingestComment } from '../services/communityAnalyticsApi';
+import * as ExpoLocation from 'expo-location';
 
 export default function CommunityScreen() {
   const [location, setLocation] = useState('Tokyo');
   const [text, setText] = useState('');
   const [messages, setMessages] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [coords, setCoords] = useState(null);
 
   useEffect(() => {
     (async () => {
       const u = auth.currentUser;
       if (u?.uid) setProfile((await getUserProfile(u.uid)) || { displayName: u.displayName, photoURL: u.photoURL });
+    })();
+    // Request location permission and capture current coords
+    (async () => {
+      try {
+        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const pos = await ExpoLocation.getCurrentPositionAsync({});
+          setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        }
+      } catch (e) {
+        // ignore
+      }
     })();
     if (!location) return;
     const q = query(
@@ -40,11 +54,13 @@ export default function CommunityScreen() {
         photoURL: profile?.photoURL || user?.photoURL || null,
         location,
         text: text.trim(),
+        lat: coords?.lat || null,
+        lng: coords?.lng || null,
         createdAt: serverTimestamp(),
       });
       // Fire-and-forget analytics ingest (non-blocking)
       try {
-        await ingestComment({ uid: user?.uid || null, location, text: text.trim() });
+        await ingestComment({ uid: user?.uid || null, location, text: text.trim(), lat: coords?.lat, lng: coords?.lng });
       } catch (e) { /* ignore analytics errors */ }
       setText('');
     } catch (e) {

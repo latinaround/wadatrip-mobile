@@ -86,11 +86,29 @@ def get_locations_overview(sinceDays: int = Query(7)):
     since = datetime.utcnow() - timedelta(days=sinceDays)
     rows = store.fetch_analysis_since(since)
     by_loc: Dict[str, Dict[str, int]] = {}
+    accum_coords: Dict[str, Dict[str, float]] = {}
+    counts: Dict[str, int] = {}
     for r in rows:
         loc = r.get("location") or "unknown"
         s = (r.get("sentiment") or "unknown").lower()
         if loc not in by_loc:
             by_loc[loc] = {}
         by_loc[loc][s] = by_loc[loc].get(s, 0) + 1
-    return {"ok": True, "sinceDays": sinceDays, "locations": by_loc}
-
+        # accumulate coordinates if present
+        lat = r.get("lat")
+        lng = r.get("lng")
+        if isinstance(lat, (int, float)) and isinstance(lng, (int, float)):
+            if loc not in accum_coords:
+                accum_coords[loc] = {"lat": 0.0, "lng": 0.0}
+                counts[loc] = 0
+            accum_coords[loc]["lat"] += float(lat)
+            accum_coords[loc]["lng"] += float(lng)
+            counts[loc] += 1
+    points = []
+    for loc, senti in by_loc.items():
+        lat = lng = None
+        if loc in accum_coords and counts.get(loc):
+            lat = accum_coords[loc]["lat"] / counts[loc]
+            lng = accum_coords[loc]["lng"] / counts[loc]
+        points.append({"location": loc, "sentiments": senti, "count": sum(senti.values()), "lat": lat, "lng": lng})
+    return {"ok": True, "sinceDays": sinceDays, "locations": by_loc, "points": points}

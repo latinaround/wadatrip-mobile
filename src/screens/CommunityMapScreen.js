@@ -3,10 +3,13 @@ import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-nativ
 import { getLocationsOverview } from '../services/communityAnalyticsApi';
 
 let MapView;
+let Marker;
 try {
   // Lazy require to avoid crash if react-native-maps not installed
   // eslint-disable-next-line global-require
-  MapView = require('react-native-maps').default;
+  const maps = require('react-native-maps');
+  MapView = maps.default;
+  Marker = maps.Marker;
 } catch (e) {
   MapView = null;
 }
@@ -45,14 +48,19 @@ export default function CommunityMapScreen() {
     );
   }
 
-  // Simple static region (Tokyo as center) — enhance with geocoding if needed
-  const region = { latitude: 35.6762, longitude: 139.6503, latitudeDelta: 30, longitudeDelta: 30 };
+  // Center map roughly; if points exist with coords, center on first
+  const points = (data && data.points) ? data.points.filter(p => p.lat && p.lng) : [];
+  const center = points.length ? { latitude: points[0].lat, longitude: points[0].lng } : { latitude: 35.6762, longitude: 139.6503 };
+  const region = { latitude: center.latitude, longitude: center.longitude, latitudeDelta: 30, longitudeDelta: 30 };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Community Map</Text>
       <MapView style={styles.map} initialRegion={region}>
-        {/* Without geocoding, we cannot place exact markers. Future step: store lat/lng in messages. */}
+        {points.map((p) => (
+          <Marker key={p.location} coordinate={{ latitude: p.lat, longitude: p.lng }} title={p.location} description={`Count: ${p.count}`}
+          />
+        ))}
       </MapView>
       <Text style={styles.meta}>Tip: add lat/lng to messages to display markers by location.</Text>
     </View>
@@ -67,4 +75,3 @@ const styles = StyleSheet.create({
   row: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#eee' },
   loc: { fontWeight: '800', color: '#1d3557' },
 });
-
