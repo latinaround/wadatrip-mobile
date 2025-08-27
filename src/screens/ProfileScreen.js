@@ -6,7 +6,7 @@ import { updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const user = auth.currentUser;
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
@@ -65,6 +65,14 @@ export default function ProfileScreen() {
       <TouchableOpacity style={[styles.button, styles.primary]} onPress={onSave} disabled={saving}>
         <Text style={styles.buttonText}>{saving ? 'Saving…' : 'Save'}</Text>
       </TouchableOpacity>
+
+      {/* Quick test payment entry */}
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: '#3a86ff' }]}
+        onPress={() => navigation.navigate('Payment', { amount: 1999, currency: 'usd', description: 'Test tour booking' })}
+      >
+        <Text style={styles.buttonText}>Test Payment ($19.99)</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -82,4 +90,3 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { backgroundColor: '#ced4da', alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 36, fontWeight: '800', color: '#fff' },
 });
-

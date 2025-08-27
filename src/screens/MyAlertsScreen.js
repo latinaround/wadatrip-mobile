@@ -139,14 +139,28 @@ export default function MyAlertsScreen() {
     </View>
   );
 
-  const renderSignal = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.title}>{item.title || 'Flight Alert'}</Text>
-      <Text style={styles.meta}>{item.meta?.origin} → {item.meta?.destination}</Text>
-      <Text style={styles.meta}>Budget ${item.meta?.budget} · Recommendation {item.meta?.result?.recommendation}</Text>
-      <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
-    </View>
-  );
+  const renderSignal = ({ item }) => {
+    const affiliate = item?.meta?.result?.affiliate_link || null;
+    const offers = item?.meta?.result?.offers || [];
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>{item.title || 'Flight Alert'}</Text>
+        <Text style={styles.meta}>{item.meta?.origin} → {item.meta?.destination}</Text>
+        <Text style={styles.meta}>Budget ${item.meta?.budget} · Recommendation {item.meta?.result?.recommendation}</Text>
+        {offers?.length ? (
+          <Text style={styles.meta}>Cheapest: ${offers[0]?.price} {offers[0]?.currency} · via {offers[0]?.provider}</Text>
+        ) : null}
+        <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
+        {affiliate ? (
+          <View style={styles.rowRight}>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: '#3a86ff' }]} onPress={() => Linking.openURL(affiliate)}>
+              <Text style={styles.btnText}>Reservar ↗</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
 
   const data = tab === 'flights' ? flights : tab === 'tours' ? tours : tab === 'recs' ? recs : signals;
   const renderer = tab === 'flights' ? renderFlight : tab === 'tours' ? renderTour : tab === 'recs' ? renderRec : renderSignal;

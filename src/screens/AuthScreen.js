@@ -14,7 +14,9 @@ import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
-import * as AppleAuthentication from 'expo-apple-authentication';
+// Apple auth is only available on iOS native. Lazy-require to avoid web issues.
+let AppleAuthentication = null;
+try { AppleAuthentication = require('expo-apple-authentication'); } catch (e) { AppleAuthentication = null; }
 
 // Importar componentes de React Native Paper
 import { TextInput, Button, Text, ActivityIndicator } from 'react-native-paper';
@@ -28,6 +30,9 @@ export default function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const [authInProgress, setAuthInProgress] = useState(false); // bloquea múltiples AuthSession
+  // Candado global para evitar sesiones concurrentes entre Google/Apple
+  const authLockRef = React.useRef(false);
 
   // --- Configuración de Autenticación de Google ---
   // Leer Client IDs desde app.json (expo.extra.auth)
@@ -66,7 +71,9 @@ export default function AuthScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const available = await AppleAuthentication.isAvailableAsync();
+        const available = AppleAuthentication && typeof AppleAuthentication.isAvailableAsync === 'function'
+          ? await AppleAuthentication.isAvailableAsync()
+          : false;
         setAppleAvailable(available);
       } catch {
         setAppleAvailable(false);
@@ -91,22 +98,39 @@ export default function AuthScreen() {
 
   // Handler para Google: en web usa popup (sin redirects); nativo usa AuthSession
   const onGooglePress = async () => {
+    if (authInProgress || authLockRef.current) return; // evita doble startAsync
     if (Platform.OS === 'web') {
       try {
+        setAuthInProgress(true);
+        authLockRef.current = true;
         await signInWithPopup(auth, new GoogleAuthProvider());
       } catch (popupErr) {
         console.error('Error con Google Popup (web):', popupErr);
         Alert.alert('Error', 'No se pudo iniciar sesión con Google.');
+      } finally {
+        setAuthInProgress(false);
+        authLockRef.current = false;
       }
+      return;
+    }
+
+    // En Expo Go Android a veces el flujo de Google no está disponible (Play Services / navegador)
+    if (Constants?.appOwnership === 'expo') {
+      Alert.alert('Google Sign-In', 'Para usar Google en Android, abre en un build nativo o usa Email/Password en Expo Go.');
       return;
     }
 
     // Nativo (iOS/Android) con proxy de Expo
     try {
+      setAuthInProgress(true);
+      authLockRef.current = true;
       await promptAsync({ useProxy: true, redirectUri });
     } catch (e) {
       console.error('Error en AuthSession (nativo):', e);
       Alert.alert('Error', 'No se pudo abrir el flujo de Google.');
+    } finally {
+      setAuthInProgress(false);
+      authLockRef.current = false;
     }
   };
 
@@ -150,7 +174,9 @@ export default function AuthScreen() {
 
   // Función para autenticación con Apple
   const handleAppleSignIn = async () => {
+    if (authInProgress || authLockRef.current) return;
     setLoading(true);
+    authLockRef.current = true;
     try {
       const appleAuthCredential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -175,6 +201,7 @@ export default function AuthScreen() {
       }
     } finally {
       setLoading(false);
+      authLockRef.current = false;
     }
   };
 
@@ -220,15 +247,16 @@ export default function AuthScreen() {
       <Button
         mode="contained"
         onPress={onGooglePress}
-        disabled={(Platform.OS !== 'web' && !request) || loading}
+        disabled={(Platform.OS !== 'web' && (Constants?.appOwnership === 'expo' || !request)) || loading || authInProgress}
         style={[styles.button, styles.googleButton]}
         icon="google"
         labelStyle={styles.buttonLabel}
+        loading={authInProgress}
       >
-        Continue with Google
+        {Platform.OS !== 'web' && Constants?.appOwnership === 'expo' ? 'Use Email on Expo Go' : 'Continue with Google'}
       </Button>
 
-      {Platform.OS === 'ios' && appleAvailable && (
+      {Platform.OS === 'ios' && appleAvailable && AppleAuthentication && (
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
@@ -238,7 +266,7 @@ export default function AuthScreen() {
           disabled={loading}
         />
       )}
-      {!(Platform.OS === 'ios' && appleAvailable) && (
+      {!(Platform.OS === 'ios' && appleAvailable && AppleAuthentication) && (
         <Button
           mode="contained"
           icon="apple"

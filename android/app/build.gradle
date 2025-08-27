@@ -1,6 +1,8 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+// Apply Google Services plugin to enable Firebase initialization via google-services.json
+apply plugin: "com.google.gms.google-services"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
@@ -187,6 +189,11 @@ dependencies {
             implementation("com.facebook.fresco:animated-webp:${reactAndroidLibs.versions.fresco.get()}")
         }
     }
+
+    // Firebase Messaging for push notifications (managed by Expo Notifications)
+    // Using BOM to manage versions
+    implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
+    implementation("com.google.firebase:firebase-messaging")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

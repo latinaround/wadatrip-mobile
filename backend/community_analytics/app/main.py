@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
@@ -8,9 +9,17 @@ from .processing import Analyzer
 from .store import Store
 from .store_flights import FlightStore
 from .price_predictor import predict_should_buy
+from .flight_providers import fetch_from_providers, fetch_test_offers
 from .payments import router as payments_router
 
 app = FastAPI(title="WadaTrip Community Analytics", version="0.1.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 store = Store(project_id=os.getenv("FIRESTORE_PROJECT_ID"))
 analyzer = Analyzer(lang=os.getenv("ANALYSIS_LANG", "en"))
@@ -57,8 +66,17 @@ def check_alert(alertId: Optional[str] = None, origin: Optional[str] = None, des
     if not (origin and destination and budget is not None):
         raise HTTPException(status_code=400, detail="missing parameters")
 
-    history = flight_store.fetch_history_prices(origin, destination, (alert.get("departureDate") if alertId else None) if 'alert' in locals() and alert else None)
+    departure = (alert.get("departureDate") if alertId else None) if 'alert' in locals() and alert else None
+    history = flight_store.fetch_history_prices(origin, destination, departure)
+    # Fetch live offers from providers (Kiwi/Skyscanner)
+    offers = fetch_from_providers(origin, destination, departure)
     res = predict_should_buy(history, float(budget), float(maxWaitHours))
+    # Attach providers and choose affiliate link from cheapest if available
+    res["offers"] = offers
+    if offers:
+        # Prefer Travelpayouts link if available; otherwise use cheapest offer
+        pref = next((o for o in offers if o.get("provider") == "travelpayouts" and o.get("affiliate_link")), None)
+        res["affiliate_link"] = (pref or offers[0]).get("affiliate_link")
     triggered = res.get("withinBudget") or res.get("recommendation") == "buy_now"
     signal_id = None
     if triggered:
@@ -78,7 +96,7 @@ def check_alert(alertId: Optional[str] = None, origin: Optional[str] = None, des
                 "uid": (alert.get("uid") if alertId and alert else None),
                 "type": "flight_alert",
                 "title": "Flight Deal Found",
-                "body": f"{origin} → {destination} appears favorable.",
+                "body": f"{origin} → {destination} appears favorable. Book here: {res.get('affiliate_link', '')}",
                 "meta": {"origin": origin, "destination": destination, "budget": float(budget), "result": res, "signalId": signal_id},
             })
         except Exception:
@@ -93,7 +111,12 @@ def run_checks():
     for a in alerts:
         try:
             history = flight_store.fetch_history_prices(a.get("origin"), a.get("destination"), a.get("departureDate"))
+            offers = fetch_from_providers(a.get("origin"), a.get("destination"), a.get("departureDate"))
             res = predict_should_buy(history, float(a.get("budget")), float(a.get("maxWaitHours", 168)))
+            res["offers"] = offers
+            if offers:
+                pref = next((o for o in offers if o.get("provider") == "travelpayouts" and o.get("affiliate_link")), None)
+                res["affiliate_link"] = (pref or offers[0]).get("affiliate_link")
             triggered = res.get("withinBudget") or res.get("recommendation") == "buy_now"
             signal_id = None
             if triggered:
@@ -103,13 +126,23 @@ def run_checks():
                     "uid": a.get("uid"),
                     "type": "flight_alert",
                     "title": "Flight Deal Found",
-                    "body": f"{a.get('origin')} → {a.get('destination')} appears favorable.",
+                    "body": f"{a.get('origin')} → {a.get('destination')} appears favorable. Book here: {res.get('affiliate_link', '')}",
                     "meta": {"origin": a.get("origin"), "destination": a.get("destination"), "budget": float(a.get("budget")), "result": res, "signalId": signal_id},
                 })
             results.append({"alertId": a.get("_id"), "triggered": triggered, "result": res, "signalId": signal_id})
         except Exception as e:
             results.append({"alertId": a.get("_id"), "error": str(e)})
     return {"ok": True, "count": len(results), "results": results}
+
+
+@app.get("/providers/test")
+def providers_test(origin: str, destination: str, date: str | None = None, currency: str = "USD"):
+    """Returns simulated offers from providers for quick testing/QA.
+
+    Example: GET /providers/test?origin=LIM&destination=SFO&date=2025-12-15
+    """
+    offers = fetch_test_offers(origin, destination, date, currency)
+    return {"ok": True, "origin": origin, "destination": destination, "date": date, "currency": currency, "offers": offers}
 
 
 @app.get("/health")

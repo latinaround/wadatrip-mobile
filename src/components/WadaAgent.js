@@ -230,9 +230,6 @@ const WadaAgent = () => {
                 { scale: pulseAnim },
                 { translateY: bounceAnim },
               ],
-              shadowColor: glowAnim.interpolate({ inputRange: [0, 1], outputRange: ['#FF6B6B', '#FFD93D'] }),
-              shadowOpacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.8] }),
-              shadowRadius: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 20] }),
             },
           ]}
         >

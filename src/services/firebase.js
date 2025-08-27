@@ -8,6 +8,7 @@ import {
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
@@ -45,15 +46,20 @@ isSupported().then((supported) => {
 });
 
 // 🔔 Push Notifications (Expo Notifications)
-
-// Configura cómo se deben manejar las notificaciones cuando la app está en primer plano
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// En web, expo-notifications no está plenamente soportado; evita configurar handler para prevenir errores.
+try {
+  if (Platform.OS !== 'web' && typeof Notifications.setNotificationHandler === 'function') {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  }
+} catch (e) {
+  // No-op: en plataformas sin soporte, ignorar
+}
 
 // 👉 Función para solicitar permisos y obtener el token de notificación
 export const requestForToken = async () => {
@@ -75,8 +81,11 @@ export const requestForToken = async () => {
   }
 
   try {
-    // Obtiene el token usando el projectId de tu configuración de Firebase
-    const token = (await Notifications.getExpoPushTokenAsync({ projectId: firebaseConfig.projectId })).data;
+    // Usa el EAS projectId (UUID) para obtener el token de Expo Push
+    const easProjectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
+    const args = easProjectId ? { projectId: easProjectId } : undefined;
+    const resp = await Notifications.getExpoPushTokenAsync(args);
+    const token = resp?.data;
     console.log('✅ Notification token (Expo):', token);
     return token;
   } catch (error) {

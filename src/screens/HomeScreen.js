@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import flightPriceMonitor from '../services/flightPriceMonitor';
@@ -29,7 +30,8 @@ const HomeScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    // --- Inicio: Demostración del sistema de alertas de precios ---
+    // --- Demo de alertas de precios (omitido en web) ---
+    if (Platform.OS === 'web') return;
     const testPriceAlert = async () => {
       console.log('--- Creando alerta de precios de prueba ---');
       

@@ -10,12 +10,18 @@
       },
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_COMMUNITY_API": "https://bdacf820bee9.ngrok-free.app"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_COMMUNITY_API": "https://bdacf820bee9.ngrok-free.app"
       }
     },
     "production": {

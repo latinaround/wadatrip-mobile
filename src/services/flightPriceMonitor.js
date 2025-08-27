@@ -7,14 +7,18 @@ import { db } from './firebase';
 import { addDoc, collection, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { fetchBestPrice } from './flightAggregator';
 
-// Configure notifications
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Configure notifications (native only). On web this can cause runtime issues.
+try {
+  if (Platform.OS !== 'web' && typeof Notifications.setNotificationHandler === 'function') {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  }
+} catch {}
 
 class FlightPriceMonitor {
   constructor() {

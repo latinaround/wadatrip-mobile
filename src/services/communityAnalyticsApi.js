@@ -1,7 +1,16 @@
 // src/services/communityAnalyticsApi.js
 // Client for the Community Analytics FastAPI service
+import { Platform } from 'react-native';
 
-const BASE_URL = process.env.EXPO_PUBLIC_COMMUNITY_API || 'http://localhost:8082';
+function resolveBaseUrl() {
+  const raw = process.env.EXPO_PUBLIC_COMMUNITY_API;
+  if (raw && raw !== 'auto') return raw;
+  const port = process.env.EXPO_PUBLIC_COMMUNITY_PORT || '8082';
+  const host = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+  return `http://${host}:${port}`;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 async function api(path, opts) {
   const res = await fetch(`${BASE_URL}${path}`, {
