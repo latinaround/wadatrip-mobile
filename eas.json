@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 3.0.0"
+    "version": ">= 3.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -17,14 +18,17 @@
     },
     "preview": {
       "distribution": "internal",
+      "developmentClient": false,
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       },
       "env": {
         "EXPO_PUBLIC_COMMUNITY_API": "https://bdacf820bee9.ngrok-free.app"
       }
     },
     "production": {
+      "developmentClient": false,
       "android": {
         "buildType": "app-bundle"
       },

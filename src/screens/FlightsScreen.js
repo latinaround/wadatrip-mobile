@@ -1,152 +1,134 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { auth, db } from '../services/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import flightPriceMonitor from '../services/flightPriceMonitor';
-import { getFlightAdvice } from '../services/mlFlightPredictor';
-import { createAlert as createBackendAlert, checkAlert as checkBackendAlert } from '../services/flightAlertsApi';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Constants from 'expo-constants';
 
 export default function FlightsScreen() {
-  const [origin, setOrigin] = useState('San Francisco');
-  const [destination, setDestination] = useState('Tokyo');
-  const [budget, setBudget] = useState('500');
-  const [date, setDate] = useState(''); // opcional
-  const [flexHours, setFlexHours] = useState('168'); // 1 semana por defecto
-  const [advice, setAdvice] = useState(null);
-  const [backendAlertId, setBackendAlertId] = useState(null);
+  const navigation = useNavigation();
+  const [origin, setOrigin] = useState('MEX');
+  const [destination, setDestination] = useState('CUN');
+  const [departDate, setDepartDate] = useState('');
+  const [returnDate, setReturnDate] = useState('');
+  const [budgetMin, setBudgetMin] = useState('');
+  const [budgetMax, setBudgetMax] = useState('');
+  const [flexDays, setFlexDays] = useState('3');
+  const [adults, setAdults] = useState('1');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
+  const isValidDate = (v) => {
+    if (!v) return true;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    const d = new Date(v);
+    return !isNaN(d.getTime());
+  };
   const parseNumber = (v) => {
     const n = Number(String(v).replace(/[^0-9.]/g, ''));
     return isNaN(n) ? null : n;
   };
-
-  const onCreateAlert = async () => {
-    const user = auth.currentUser;
-    if (!origin || !destination) return Alert.alert('Missing fields', 'Origin and destination are required');
-    const b = parseNumber(budget);
-    if (b == null || b <= 0) return Alert.alert('Budget', 'Enter a valid budget');
-    const hours = parseNumber(flexHours) || 168;
-
-    try {
-      // Guardar en Firestore para persistencia
-      await addDoc(collection(db, 'flightAlerts'), {
-        uid: user?.uid || null,
-        origin,
-        destination,
-        budget: b,
-        departureDate: date || null,
-        maxWaitHours: hours,
-        status: 'active',
-        createdAt: serverTimestamp(),
-      });
-
-      // (Opcional) activar monitor local simulado
-      try {
-        await flightPriceMonitor.createPriceMonitor({
-          origin,
-          destination,
-          budget: b,
-          departureDate: date || new Date().toISOString(),
-          maxWaitTime: hours / 24, // servicio usa días aprox
-          userEmail: user?.email || 'user@wadatrip.com',
-        });
-      } catch (e) {
-        // Ignorar si falla el mock
-      }
-
-      Alert.alert('Done', 'Your flight alert has been created');
-      // Create backend alert
-      try {
-        const res = await createBackendAlert({ origin, destination, budget: b, departureDate: date || null, maxWaitHours: hours, uid: user?.uid || null });
-        if (res?.alertId) setBackendAlertId(res.alertId);
-      } catch (e) { /* ignore */ }
-    } catch (e) {
-      console.error('Error creating flight alert', e);
-      Alert.alert('Error', 'Could not create the alert');
-    }
+  const getApiMode = () => {
+    const extra = (Constants && (Constants).expoConfig && (Constants).expoConfig.extra) || {};
+    return String(extra.API_MODE || (typeof process !== 'undefined' ? process?.env?.EXPO_PUBLIC_API_MODE : '') || 'live').toLowerCase();
   };
 
-  const onGetAdvice = async () => {
-    const b = parseNumber(budget) || undefined;
-    const payload = { origin, destination, budget: b, departureDate: date || new Date().toISOString() };
+  const onSearch = async () => {
+    if (loading) return;
+    setError('');
+    if (!origin?.trim() || !destination?.trim()) { setError('Please enter origin and destination'); return; }
+    if (!isValidDate(departDate) || !isValidDate(returnDate)) { setError('Invalid date. Use YYYY-MM-DD'); return; }
+    setLoading(true);
     try {
-      const res = await getFlightAdvice(payload);
-      setAdvice(res);
+      const min = parseNumber(budgetMin);
+      const max = parseNumber(budgetMax);
+      const hasBudget = (min != null && min > 0) || (max != null && max > 0);
+      if (hasBudget) {
+        const { subscribeAlert } = await import('../lib/api');
+        await subscribeAlert({
+          route: { origin, destination },
+          budget_min: min ?? undefined,
+          budget_max: max ?? undefined,
+          adults: parseInt(adults || '1', 10) || 1,
+          dates: { depart: departDate || undefined, return: returnDate || undefined, flex_days: parseInt(flexDays || '0', 10) || 0 },
+        });
+        const mode = getApiMode();
+        Alert.alert('Alert created', mode === 'mock' ? 'Your price alert was created (mock).' : 'Your price alert was created.');
+        try { navigation.navigate('MyAlerts'); } catch {}
+      } else {
+        Alert.alert('Search submitted', 'Connect backend in live mode to search flights.');
+      }
     } catch (e) {
-      console.error('Advice error', e);
-      Alert.alert('Error', 'Could not compute advice');
-    }
+      console.error(e);
+      setError('Could not create alert');
+    } finally { setLoading(false); }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Itineraries — Flight Alerts</Text>
-      <Text style={styles.label}>Location From</Text>
-      <TextInput style={styles.input} placeholder="Origin city / airport" value={origin} onChangeText={setOrigin} />
-      <Text style={styles.label}>To</Text>
-      <TextInput style={styles.input} placeholder="Destination city / airport" value={destination} onChangeText={setDestination} />
-      <Text style={styles.label}>Budget (USD)</Text>
-      <TextInput style={styles.input} placeholder="$500" keyboardType="numeric" value={budget} onChangeText={setBudget} />
-      <Text style={styles.label}>Date (optional)</Text>
-      <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={date} onChangeText={setDate} />
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={[styles.container, { paddingBottom: 160, minHeight: '100%' }]}
+      showsVerticalScrollIndicator={true}
+      persistentScrollbar={true}
+      keyboardShouldPersistTaps="handled"
+      overScrollMode="always"
+    >
+      <Text style={styles.title}>Flights</Text>
 
-      <Text style={styles.label}>Flexibility time to find</Text>
-      <View style={styles.flexGrid}>
-        <TouchableOpacity style={[styles.flexBtn, flexHours === '24' && styles.flexBtnActive]} onPress={() => setFlexHours('24')}><Text style={[styles.flexBtnText, flexHours === '24' && styles.flexBtnTextActive]}>1 hr – 24 hrs</Text></TouchableOpacity>
-        <TouchableOpacity style={[styles.flexBtn, flexHours === '72' && styles.flexBtnActive]} onPress={() => setFlexHours('72')}><Text style={[styles.flexBtnText, flexHours === '72' && styles.flexBtnTextActive]}>1 day – 3 days</Text></TouchableOpacity>
-        <TouchableOpacity style={[styles.flexBtn, flexHours === '168' && styles.flexBtnActive]} onPress={() => setFlexHours('168')}><Text style={[styles.flexBtnText, flexHours === '168' && styles.flexBtnTextActive]}>3 days – 1 week</Text></TouchableOpacity>
-        <TouchableOpacity style={[styles.flexBtn, flexHours === '720' && styles.flexBtnActive]} onPress={() => setFlexHours('720')}><Text style={[styles.flexBtnText, flexHours === '720' && styles.flexBtnTextActive]}>1 month</Text></TouchableOpacity>
+      <Text style={styles.label}>Origin</Text>
+      <TextInput style={styles.input} placeholder="MEX" value={origin} onChangeText={setOrigin} />
+
+      <Text style={styles.label}>Destination</Text>
+      <TextInput style={styles.input} placeholder="CUN" value={destination} onChangeText={setDestination} />
+
+      <Text style={styles.label}>Depart date (YYYY-MM-DD)</Text>
+      <TextInput style={styles.input} placeholder="2025-09-10" value={departDate} onChangeText={setDepartDate} />
+
+      <Text style={styles.label}>Return date (optional)</Text>
+      <TextInput style={styles.input} placeholder="2025-09-20" value={returnDate} onChangeText={setReturnDate} />
+
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>Budget min (optional)</Text>
+          <TextInput style={styles.input} placeholder="$100" keyboardType="numeric" value={budgetMin} onChangeText={setBudgetMin} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>Budget max (optional)</Text>
+          <TextInput style={styles.input} placeholder="$600" keyboardType="numeric" value={budgetMax} onChangeText={setBudgetMax} />
+        </View>
       </View>
 
-      <TextInput style={styles.input} placeholder="Search hours (custom)" keyboardType="numeric" value={flexHours} onChangeText={setFlexHours} />
-
-      <TouchableOpacity style={[styles.button, styles.primary]} onPress={onGetAdvice}>
-        <Text style={styles.buttonText}>Get price advice</Text>
-      </TouchableOpacity>
-
-      {advice && (
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Advice</Text>
-          <Text style={styles.panelLine}>Predicted: ${advice.predictedPrice} (± ~{Math.round(((advice.upperBound - advice.lowerBound)/2))})</Text>
-          <Text style={styles.panelLine}>Range: ${advice.lowerBound} – ${advice.upperBound}</Text>
-          <Text style={styles.panelLine}>Recommendation: {advice.recommendation.replace('_', ' ')}</Text>
-          <Text style={styles.panelLine}>Confidence: {Math.round(advice.confidence * 100)}%</Text>
-          <Text style={styles.panelLine}>Next check in ~{advice.nextCheckHours}h</Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>Flexibility (± days)</Text>
+          <TextInput style={styles.input} placeholder="3" keyboardType="numeric" value={flexDays} onChangeText={setFlexDays} />
         </View>
-      )}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>Adults</Text>
+          <TextInput style={styles.input} placeholder="1" keyboardType="numeric" value={adults} onChangeText={setAdults} />
+        </View>
+      </View>
 
-      <TouchableOpacity style={[styles.button, styles.primary]} onPress={onCreateAlert}>
-        <Text style={styles.buttonText}>Create alert</Text>
+      <TouchableOpacity style={[styles.button, styles.primary]} onPress={onSearch} disabled={loading}>
+        <Text style={styles.buttonText}>{loading ? 'Submitting…' : 'Search / Create Alert'}</Text>
       </TouchableOpacity>
 
-      {backendAlertId && (
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#3a86ff', marginTop: 8 }]} onPress={async () => {
-          try {
-            const res = await checkBackendAlert({ alertId: backendAlertId });
-            Alert.alert('Check', res.triggered ? 'Alert triggered!' : 'No trigger yet');
-          } catch (e) { Alert.alert('Error', 'Check failed'); }
-        }}>
-          <Text style={styles.buttonText}>Check backend alert</Text>
-        </TouchableOpacity>
+      {loading && (
+        <View style={styles.loadingRow}><ActivityIndicator color="#2a9d8f" /><Text style={styles.loadingText}> Loading…</Text></View>
       )}
-    </View>
+      {!!error && (<View style={styles.errorPanel}><Text style={styles.errorText}>{error}</Text></View>)}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa', padding: 16 },
+  container: { padding: 16, backgroundColor: '#f8f9fa' },
   title: { fontSize: 20, fontWeight: '700', color: '#1d3557', marginBottom: 10 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
   label: { color: '#1d3557', marginTop: 8, marginBottom: 6, fontWeight: '600' },
-  flexGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  flexBtn: { backgroundColor: '#eef2f7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
-  flexBtnActive: { backgroundColor: '#2a9d8f' },
-  flexBtnText: { color: '#1d3557', fontWeight: '600' },
-  flexBtnTextActive: { color: '#fff' },
   button: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 6 },
   primary: { backgroundColor: '#2a9d8f' },
   buttonText: { color: '#fff', fontWeight: '600' },
-  panel: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#e9ecef' },
-  panelTitle: { fontWeight: '800', color: '#1d3557', marginBottom: 6 },
-  panelLine: { color: '#333', marginTop: 2 },
+  errorPanel: { backgroundColor: '#ffe8e8', borderColor: '#f5c2c7', borderWidth: 1, padding: 12, borderRadius: 8, marginTop: 10 },
+  errorText: { color: '#b02a37', marginBottom: 6, fontWeight: '600' },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
+  loadingText: { marginLeft: 8, color: '#1d3557' },
 });

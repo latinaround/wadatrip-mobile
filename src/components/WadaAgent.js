@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-const WadaAgent = () => {
+const WadaAgent = (props) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [message, setMessage] = useState('');
@@ -50,7 +50,7 @@ const WadaAgent = () => {
     const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.2,
+          toValue: 1.08,
           duration: 900,
           useNativeDriver: true,
         }),
@@ -233,10 +233,10 @@ const WadaAgent = () => {
             },
           ]}
         >
-          <Animated.View style={[styles.glowRing, { opacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] }) }]} />
+          <Animated.View style={[styles.glowRing, { opacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.35] }) }]} />
           <TouchableOpacity onPress={handlePress} style={styles.buttonContent} activeOpacity={0.85}>
-            <Ionicons name="chatbubble-ellipses" size={22} color="white" />
-            <Text style={styles.floatingButtonText}>WadaAgent</Text>
+            {Ionicons ? <Ionicons name="chatbubble-ellipses" size={18} color="white" /> : null}
+            <Text style={styles.floatingButtonText}>WadAi</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -255,7 +255,7 @@ const WadaAgent = () => {
               <View style={styles.chatHeader}>
                 <View style={styles.headerLeft}>
                   <View style={styles.agentAvatar}>
-                    <Ionicons name="chatbubble-ellipses" size={20} color="white" />
+                    {Ionicons ? <Ionicons name="chatbubble-ellipses" size={20} color="white" /> : null}
                   </View>
                   <View>
                     <Text style={styles.agentName}>WadaAgent</Text>
@@ -263,7 +263,17 @@ const WadaAgent = () => {
                   </View>
                 </View>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color="#666" />
+                  {Ionicons ? <Ionicons name="close" size={24} color="#666" /> : null}
+                </TouchableOpacity>
+              </View>
+
+              {/* Quick action: Generate Itinerary */}
+              <View style={{ paddingHorizontal: 20, paddingBottom: 10 }}>
+                <TouchableOpacity
+                  onPress={() => { try { props?.onGenerateItinerary?.(); } catch {} }}
+                  style={{ backgroundColor: '#2a9d8f', paddingVertical: 10, borderRadius: 8, alignItems: 'center' }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '800' }}>Generate Itinerary</Text>
                 </TouchableOpacity>
               </View>
 
@@ -325,7 +335,7 @@ const WadaAgent = () => {
                   } : undefined}
                 />
                 <TouchableOpacity onPress={sendMessage} style={[styles.sendButton, { opacity: message.trim() ? 1 : 0.5, backgroundColor: theme.accent }]} disabled={!message.trim()}>
-                  <Ionicons name="send" size={20} color="white" />
+                  {Ionicons ? <Ionicons name="send" size={20} color="white" /> : null}
                 </TouchableOpacity>
               </View>
             </KeyboardAvoidingView>
@@ -339,8 +349,8 @@ const WadaAgent = () => {
 const styles = StyleSheet.create({
   floatingContainer: {
     position: 'absolute',
-    bottom: 96,
-    right: 20,
+    bottom: 24,
+    right: 12,
     alignItems: 'center',
     zIndex: 1000,
   },
@@ -348,9 +358,9 @@ const styles = StyleSheet.create({
     display: 'none',
   },
   floatingButton: {
-    paddingHorizontal: 14,
-    height: 48,
-    borderRadius: 24,
+    paddingHorizontal: 8,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#2a9d8f',
     justifyContent: 'center',
     alignItems: 'center',
@@ -363,20 +373,18 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    borderRadius: 24,
+    borderRadius: 16,
     backgroundColor: 'transparent',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#3a86ff',
   },
   buttonContent: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
-  floatingButtonText: { color: '#fff', fontWeight: '800', fontSize: 14 },
+  floatingButtonText: { color: '#fff', fontWeight: '800', fontSize: 11, includeFontPadding: false },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

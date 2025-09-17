@@ -1,6 +1,5 @@
 {
   "expo": {
-    "owner": "kiaradiaz",
     "name": "WadaTrip Mobile",
     "slug": "wadatrip-mobile",
     "version": "1.0.0",
@@ -21,7 +20,9 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSUserTrackingUsageDescription": "WadaTrip usa esta información para mejorar tu experiencia de viaje.",
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "NSLocationWhenInUseUsageDescription": "We use your location to tag community posts and show them on the map."
       }
     },
@@ -46,7 +47,6 @@
       "expo-apple-authentication",
       "expo-font",
       "expo-localization",
-      
       [
         "expo-notifications",
         {
@@ -56,9 +56,6 @@
       ]
     ],
     "extra": {
-      "eas": {
-        "projectId": "b79e31bd-c5f5-41fa-86a5-c456870090d3"
-      },
       "auth": {
         "webClientId": "981114942208-lr5aqqov1ifftioc462ut45sadvvjusd.apps.googleusercontent.com",
         "androidClientId": "981114942208-8hsf2u8833vlpuia4l9jmeus9sdd650p.apps.googleusercontent.com",
@@ -66,6 +63,9 @@
       },
       "stripe": {
         "publishableKey": "pk_live_51OzQpxAHNOOTJQKY92xoPWCzjNYLPF9VhiFrUEmhihlsghV7oCrxVxaEkrUneLA9wFJ6AoQ2OTrJRfwqpUU55Ma500ZHhFtWdW"
+      },
+      "eas": {
+        "projectId": "b79e31bd-c5f5-41fa-86a5-c456870090d3"
       }
     }
   }

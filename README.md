@@ -1,56 +1,63 @@
-# WadaTrip Mobile App
+# WadaTrip Mobile App (SDK 51)
 
-Aplicación móvil nativa para iOS y Android de WadaTrip, desarrollada con React Native y Expo.
+Aplicación móvil nativa (Expo + React Native) que consume el backend Wadatrip (gateway + servicios: itineraries, pricing, alerts, provider-hub) y usa Firebase (Auth, Firestore) para ciertas funcionalidades de comunidad y deals.
 
 ## Características
 
-- 📱 **Aplicación nativa** para iOS y Android
-- 🌍 **Soporte multiidioma** (Español, Inglés, Francés)
-- ✈️ **Alertas de precios de vuelos** con notificaciones push
-- 🎨 **Interfaz moderna** y fácil de usar
-- 🔔 **Notificaciones en tiempo real** cuando se encuentran precios objetivo
-- 📊 **Monitoreo automático** de precios de vuelos
+- 📱 App nativa para iOS/Android (Expo SDK 51)
+- 🔐 Firebase Auth con persistencia AsyncStorage (RN)
+- ✈️ Flights: predicción de precios desde `/pricing/predict`
+- 🔔 Alerts: lista y subscribe vía `/alerts/list` y `/alerts/subscribe`
+- 🧭 WadaAgent: overlay con acción “Generate Itinerary” → `/itineraries/generate`
+- 👥 Community: Firestore `community_posts` (autor, mensaje, ubicación, fecha)
+- 🏷 Tours & Deals: Firestore `tours_deals` con búsqueda por destino
+- 🎨 Header con gradiente + Ionicons en tabs
 
 ## Requisitos previos
 
-- Node.js (versión 16 o superior)
-- npm o yarn
-- Expo CLI
-- Para desarrollo iOS: Xcode (solo en macOS)
-- Para desarrollo Android: Android Studio
+- Node 18/20 recomendado
+- Android Studio y/o Xcode (según plataforma)
+- No usar expo-cli global (se fuerza `npx expo` en scripts)
 
-## Instalación
+## Instalación rápida
 
-1. **Clonar el repositorio**
-   ```bash
-   git clone <repository-url>
-   cd wadatrip-mobile
-   ```
-
-2. **Instalar dependencias**
-   ```bash
-   npm install
-   ```
-
-3. **Instalar Expo CLI globalmente** (si no lo tienes)
-   ```bash
-   npm install -g @expo/cli
-   ```
+1) Clonar y entrar en `wadatrip-mobile`
+2) Instalar dependencias alineadas a SDK 51 (una vez):
+   - `npx expo install @react-native-async-storage/async-storage`
+   - `npx expo install react-native-gesture-handler react-native-reanimated react-native-screens react-native-safe-area-context`
+   - `npx expo install expo-linear-gradient expo-notifications`
+   - `npx expo install @react-navigation/native @react-navigation/bottom-tabs @react-navigation/native-stack`
 
 ## Desarrollo
 
-### Ejecutar en modo desarrollo
+### API del Gateway
+
+- Cliente API en `src/lib/api.ts` con funciones:
+  - `generateItinerary(request)` → POST `/itineraries/generate`
+  - `predictPricing(request)` → POST `/pricing/predict`
+  - `listAlerts()` → GET `/alerts/list`
+- Headers: incluye `Authorization: Bearer <AUTH_TOKEN>` si está definido.
+- Base URL en desarrollo:
+  - iOS Simulator: `http://localhost:3000`
+  - Android Emulator: `http://10.0.2.2:3000`
+  - Dispositivo físico: usar IP local, por ejemplo `http://192.168.1.50:3000`
+- Override en `app.json` → `expo.extra.API_BASE_URL` y `expo.extra.AUTH_TOKEN`.
+
+### Pantallas conectadas
+
+- ItineraryScreen llama `/itineraries/generate` (ahora accedida desde WadaAgent, no tab).
+- FlightsScreen usa `/pricing/predict`.
+- MyAlertsScreen usa `/alerts/list` + `/alerts/subscribe`.
+
+### Ejecutar en desarrollo
 
 ```bash
-npx expo start
+npm run dev   # equivale a: npx expo start -c
 ```
 
-Esto abrirá Expo DevTools en tu navegador. Desde ahí puedes:
-
-- **Escanear el código QR** con la app Expo Go en tu dispositivo móvil
-- **Presionar 'i'** para abrir en el simulador de iOS (requiere Xcode)
-- **Presionar 'a'** para abrir en el emulador de Android (requiere Android Studio)
-- **Presionar 'w'** para abrir en el navegador web
+- Presiona `a` para Android, `i` para iOS.
+- Owner y EAS projectId removidos en dev: no se requiere login de Expo.
+- Push token: se omite si no hay `projectId` (dev), sin romper el flujo.
 
 ### Ejecutar en dispositivos específicos
 
@@ -65,10 +72,11 @@ npx expo start --android
 npx expo start --web
 ```
 
-## Autenticación (Google, Email y Apple)
+## Autenticación (Firebase)
 
-- Pantalla de autenticación: `src/screens/AuthScreen.js`.
-- Flujo controlado en `App.js` con `onAuthStateChanged` (Firebase Auth).
+- Pantalla: `src/screens/LoginScreen.js` (Email/Password, Google en web).
+- Persistencia: `initializeAuth(..., getReactNativePersistence(AsyncStorage))` en RN.
+- Flujo: `App.js` usa native stack para mostrar Login si no hay sesión; si hay sesión, muestra tabs y WadaAgent.
 - IDs de cliente se cargan desde `app.json` → `expo.extra.auth`.
 
 ### Configuración de Client IDs (app.json)
@@ -118,7 +126,7 @@ Nota: `AuthScreen` usa `useProxy: true`, por lo que no dependemos del puerto loc
 - Android (Expo Go): `npm run android:go` o `npx expo start --android`.
 - Para ver el login si ya hay sesión: usa “Cerrar sesión” en Home o limpia el almacenamiento del sitio.
 
-## Estructura del proyecto
+## Estructura del proyecto (resumen)
 
 ```
 wadatrip-mobile/
@@ -126,7 +134,12 @@ wadatrip-mobile/
 │   ├── components/          # Componentes reutilizables
 │   │   └── FlightPriceAlert.js
 │   ├── screens/            # Pantallas de la aplicación
-│   │   └── HomeScreen.js
+│   │   ├── FlightsScreen.js
+│   │   ├── MyAlertsScreen.js
+│   │   ├── ToursDealsScreen.js
+│   │   ├── CommunityScreen.js
+│   │   ├── ItineraryScreen.js   # accesible desde WadaAgent
+│   │   └── LoginScreen.js
 │   ├── services/           # Servicios y lógica de negocio
 │   │   └── flightPriceMonitor.js
 │   └── i18n/              # Configuración de internacionalización
@@ -143,62 +156,40 @@ wadatrip-mobile/
 
 ## Funcionalidades principales
 
-### Alertas de precios de vuelos
+- Tabs: Flights, Alerts, Tours & Deals, Community
+- WadaAgent (overlay) con acción “Generate Itinerary” → navega a Itinerary
+- Manejo de errores con mapeo por HTTP (400/401/500), retry y “Show details” (cuerpo JSON)
+- Loading/Empty states en todas las vistas clave
 
-- **Configuración de alertas**: Los usuarios pueden configurar alertas para rutas específicas
-- **Monitoreo automático**: El sistema verifica precios cada 30 minutos
-- **Notificaciones push**: Se envían notificaciones cuando se encuentran precios objetivo
-- **Gestión de alertas**: Los usuarios pueden ver y cancelar alertas activas
-
-### Soporte multiidioma
-
-- **Detección automática**: La app detecta el idioma del dispositivo
-- **Idiomas soportados**: Español, Inglés, Francés
-- **Fallback**: Inglés como idioma por defecto
-
-## Configuración de notificaciones
+## Notificaciones (Expo)
 
 Para que las notificaciones funcionen correctamente:
 
 1. **Permisos**: La app solicita permisos de notificación al usuario
-2. **Expo Push Tokens**: Se generan automáticamente para cada dispositivo
-3. **Configuración**: Las notificaciones están configuradas para mostrar alertas, sonidos y badges
+2. **Expo Push Tokens**: En dev se omite si no hay `projectId` (no rompe el flujo)
+3. **Configuración**: Canal Android “default”; alertas + sonido
 
-## Build y distribución
+## Hoy avanzamos
 
-### Build de desarrollo
+- Integración real con backend en Flights (`/pricing/predict`) y Alerts (`/alerts/list` + `/alerts/subscribe`).
+- Nuevo `subscribeAlert` en `src/lib/api.ts` y errores HTTP con detalles (`status`, `body`).
+- Tabs reconfiguradas: Flights, Alerts, Tours & Deals, Community.
+- Itinerary movido al flujo de WadaAgent (no tab). Botón “Generate Itinerary” navega a `ItineraryScreen`.
+- Community: usa Firestore `community_posts` (autor, mensaje, ubicación, fecha) + Snackbar de éxito + aviso inline si no hay permisos de ubicación.
+- Tours & Deals: nueva pantalla `ToursDealsScreen` (Firestore `tours_deals`) con búsqueda por destino.
+- Auth estable: `LoginScreen`, persistencia AsyncStorage (RN), owner/EAS removidos en dev, scripts con `npx expo`.
+- Estabilización dev: dependencias congeladas para SDK 51; skip seguro de Expo push token cuando no hay projectId.
 
-```bash
-# Para iOS
-npx expo build:ios
+## Mañana (siguiente sprint corto)
 
-# Para Android
-npx expo build:android
-```
-
-### Build de producción con EAS
-
-1. **Instalar EAS CLI**
-   ```bash
-   npm install -g @expo/eas-cli
-   ```
-
-2. **Configurar EAS**
-   ```bash
-   eas build:configure
-   ```
-
-3. **Build para producción**
-   ```bash
-   # iOS
-   eas build --platform ios
-   
-   # Android
-   eas build --platform android
-   
-   # Ambas plataformas
-   eas build --platform all
-   ```
+- Seed/fixtures para `community_posts` y `tours_deals` (mejor demo inicial).
+- Google Sign‑In nativo (expo-auth-session) con clientIds iOS/Android.
+- Mejoras de UX:
+  - Toast/feedback en Tours & Deals (e.g., al abrir enlaces o al no haber conexión).
+  - “Show details” también para Alerts subscribe si backend responde JSON con error.
+- Afinar validaciones (Flights date, Alerts body más flexible, límites de input).
+- QA iOS/Android (permisos, teclado, layouts pequeños) + pequeñas mejoras de accesibilidad.
+- (Opcional) Métricas anónimas de uso (eventos básicos) y logging de errores.
 
 ## Personalización
 
@@ -284,3 +275,11 @@ await runToursRefreshForUser(db, auth.currentUser.uid);
 ```
 
 Writes top recommendations to `tourRecommendations` per alert.
+## Build Troubleshooting (2025-09-17)
+
+- .easignore actualizado para excluir .idea/, backend/, scripts/ y scripts *.ps1/*.sh, evitando rutas de Windows en el tarball.
+- eas.json (perfil preview) ahora fuerza developmentClient=false y gradleCommand=:app:assembleRelease; producción también con developmentClient=false.
+- Gradle limpiado (gradlew.bat clean + caches).
+- EAS Build (preview) falla en "Prepare project build" con UNKNOWN_ERROR (ID 6850a823-9899-4c1e-a770-eb40a7701263); log vía CLI devuelve HTML porque requiere sesión.
+- Tarball reproducido con eas build:inspect --stage archive, hash SHA256 F37D7F2096807CFC61007D565D7AE9A077060FDA4BEE676E313EA6CA3AF95D2A.
+- Siguiente paso: descargar log autenticado desde https://expo.dev/.../6850a823-9899-4c1e-a770-eb40a7701263 o abrir ticket adjuntando el tarball.

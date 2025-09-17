@@ -1,77 +1,174 @@
+// App.js
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, ActivityIndicator, Alert, Platform, TouchableOpacity, Text, StatusBar } from "react-native";
-import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet, View, Text, ActivityIndicator, StatusBar, Platform } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import Constants from 'expo-constants';
 import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
-import { Provider as PaperProvider } from 'react-native-paper';
-import { createStackNavigator } from "@react-navigation/stack";
-import "./src/i18n"; // Inicializar traducciones
+import { Provider as PaperProvider } from "react-native-paper";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import "./src/i18n";
 
-// Firebase
 import { auth, requestForToken, setupNotificationListeners } from "./src/services/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, onIdTokenChanged } from "firebase/auth";
+// Dev override de API_BASE_URL por IP LAN (útil cuando 10.0.2.2 no funciona)
+if (typeof __DEV__ !== 'undefined' && __DEV__) {
+  // Removed global.API_BASE_URL override; use env/extra/defaults
+}
 
 // Screens
-import HomeScreen from "./src/screens/HomeScreen";
 import ItineraryScreen from "./src/screens/ItineraryScreen";
-import AuthScreen from "./src/screens/AuthScreen";
-import RegisterScreen from "./src/screens/RegisterScreen";
-import ToursScreen from "./src/screens/ToursScreen";
 import FlightsScreen from "./src/screens/FlightsScreen";
-import CommunityScreen from "./src/screens/CommunityScreen";
 import MyAlertsScreen from "./src/screens/MyAlertsScreen";
-import ProfileScreen from "./src/screens/ProfileScreen";
-import CommunityInsightsScreen from "./src/screens/CommunityInsightsScreen";
-import CommunityMapScreen from "./src/screens/CommunityMapScreen";
-import ApiTestScreen from "./src/screens/ApiTestScreen";
-import PaymentScreen from "./src/screens/PaymentScreen";
+import ToursDealsScreen from "./src/screens/ToursDealsScreen";
+import CommunityScreen from "./src/screens/CommunityScreen";
+import HomeScreen from "./src/screens/HomeScreen";
+import ReserveBookingScreen from "./src/screens/ReserveBookingScreen";
+import ProviderSignupScreen from "./src/screens/ProviderSignupScreen";
+import CreateListingScreen from "./src/screens/CreateListingScreen";
+import LoginScreen from "./src/screens/LoginScreen";
 
-// Components (lazy-load WadaAgent on native only)
-
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 const navigationRef = createNavigationContainerRef();
 
+const HeaderBackground = () => {
+  if (LinearGradient) {
+    return (
+      <LinearGradient
+        colors={["#2a9d8f", "#3a86ff"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={StyleSheet.absoluteFill}
+      />
+    );
+  }
+  return <View style={[StyleSheet.absoluteFill, { backgroundColor: "#2a9d8f" }]} />;
+};
+
+// Evita pasar undefined a Navigator
+const ensureScreen = (Comp, name) => {
+  const isFunction = typeof Comp === "function";
+  const isReactType = Comp && typeof Comp === "object" && (Comp.$$typeof || Comp.render);
+  if (!isFunction && !isReactType) {
+    console.error(`Screen invalid: ${name}`, { type: typeof Comp, value: Comp });
+    return () => <View />;
+  }
+  return Comp;
+};
+
 export default function App() {
+  try {
+    // Logs de diagnóstico para detectar navegadores indefinidos
+    // eslint-disable-next-line no-console
+    console.log('[DBG] Stack object:', typeof Stack, 'Navigator:', typeof Stack?.Navigator, 'Screen:', typeof Stack?.Screen);
+    // eslint-disable-next-line no-console
+    console.log('[DBG] Tab object:', typeof Tab, 'Navigator:', typeof Tab?.Navigator, 'Screen:', typeof Tab?.Screen);
+  } catch {}
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const bypassAuth = process.env.EXPO_PUBLIC_BYPASS_AUTH === 'true';
-  const [WadaAgentComp, setWadaAgentComp] = useState(null);
 
-  // 🔥 Escucha cambios de sesión en Firebase
+  const bypassAuth = process.env.EXPO_PUBLIC_BYPASS_AUTH === "true";
+  const showBypassBanner = process.env.EXPO_PUBLIC_SHOW_BYPASS_BANNER === "true";
+  const minimalNav = process.env.EXPO_PUBLIC_MINIMAL_NAV === "true";
+  const disablePaper = process.env.EXPO_PUBLIC_DISABLE_PAPER === "true";
+  const useSimpleFlights =
+    (typeof process !== "undefined" &&
+      process.env &&
+      Object.prototype.hasOwnProperty.call(process.env, "EXPO_PUBLIC_SIMPLE_FLIGHTS"))
+      ? process.env.EXPO_PUBLIC_SIMPLE_FLIGHTS === "true"
+      : false;
+
+  const [WadaAgentComp, setWadaAgentComp] = useState(null);
+  const enableAgent = (() => {
+    try {
+      const extra = (Constants && Constants.expoConfig && Constants.expoConfig.extra) || {};
+      const flag = (typeof process !== 'undefined' && process.env && process.env.EXPO_PUBLIC_ENABLE_WADA_AGENT === 'true') || extra.ENABLE_WADA_AGENT === true;
+      const mode = String(extra.API_MODE || (typeof process !== 'undefined' ? (process.env && process.env.EXPO_PUBLIC_API_MODE) : '') || 'live').toLowerCase();
+      return !!flag && mode === 'live';
+    } catch { return false; }
+  })();
+
+  // Habilita solo los tabs necesarios mientras aíslas problemas
+  const TABS = {
+    Flights: true,
+    Itinerary: true,
+    MyAlerts: true,
+    ToursDeals: false,
+    Community: true,
+  };
+
+  // Sesión Firebase
   useEffect(() => {
     if (bypassAuth) {
-      setUser({ uid: 'dev-bypass', email: 'dev@local' });
+      setUser({ uid: "dev-bypass", email: "dev@local" });
       setLoading(false);
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u || null);
       setLoading(false);
+      try {
+        if (u && typeof u.getIdToken === 'function') {
+          const token = await u.getIdToken();
+          try { global.AUTH_TOKEN = token; } catch {}
+        } else {
+          try { global.AUTH_TOKEN = undefined; } catch {}
+        }
+      } catch {}
     });
     return unsubscribe;
   }, [bypassAuth]);
 
-  // 🔔 Configurar notificaciones push
+  // Mantener actualizado el token de Firebase para llamadas al backend
   useEffect(() => {
-    // Pedir token y configurar listeners solo en Android/iOS
+    const unsub = onIdTokenChanged(auth, async (u) => {
+      try {
+        if (u && typeof u.getIdToken === 'function') {
+          const token = await u.getIdToken(true);
+          try { global.AUTH_TOKEN = token; } catch {}
+        } else {
+          try { global.AUTH_TOKEN = undefined; } catch {}
+        }
+      } catch {}
+    });
+    return unsub;
+  }, []);
+
+  // Notificaciones push
+  useEffect(() => {
     if (Platform.OS !== "web") {
-      requestForToken();
-
-      // Configurar listeners para manejar notificaciones recibidas e interacciones
-      const unsubscribe = setupNotificationListeners();
-
-      // Limpiar los listeners cuando el componente se desmonte
-      return unsubscribe;
+      try {
+        requestForToken();
+        const unsubscribe = setupNotificationListeners();
+        return unsubscribe;
+      } catch {}
     }
   }, []);
 
-  // Lazy load WadaAgent only on native to avoid web icon deps
+  // Lazy load WadaAgent solo en nativo
   useEffect(() => {
-    if (Platform.OS !== 'web') {
-      import('./src/components/WadaAgent')
+    if (Platform.OS !== "web") {
+      import("./src/components/WadaAgent")
         .then((m) => setWadaAgentComp(() => m.default))
         .catch(() => setWadaAgentComp(null));
     }
   }, []);
+
+  // Placeholder para aislar Flights
+  const SimpleFlights = () => (
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ fontSize: 18 }}>Flights Placeholder</Text>
+    </View>
+  );
+  const FlightsComp = useSimpleFlights ? SimpleFlights : ensureScreen(FlightsScreen, "FlightsScreen");
+
+  const SafePaperProvider = ({ children }) => {
+    if (!disablePaper && typeof PaperProvider === "function") {
+      return <PaperProvider>{children}</PaperProvider>;
+    }
+    return <>{children}</>;
+  };
 
   if (loading) {
     return (
@@ -81,102 +178,85 @@ export default function App() {
     );
   }
 
-  return (
-    <PaperProvider>
-    <NavigationContainer ref={navigationRef}>
-      <StatusBar backgroundColor="#2a9d8f" barStyle="light-content" />
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: true,
-          headerBackTitleVisible: false,
-          headerTitleAlign: 'center',
-          headerTintColor: '#ffffff',
-          headerTitleStyle: { fontWeight: '700', color: '#ffffff' },
-          headerShadowVisible: false,
-          headerBackground: () => (
-            <LinearGradient
-              colors={["#2a9d8f", "#3a86ff"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={StyleSheet.absoluteFill}
-            />
-          ),
-        }}
-      >
-        {user ? (
-          // Usuario logueado → Home (+ otras pantallas)
-          <>
-            <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Itinerary" component={ItineraryScreen} options={{ title: 'Itinerary' }} />
-            <Stack.Screen name="Tours" component={ToursScreen} options={{ title: 'Tours' }} />
-            <Stack.Screen name="Flights" component={FlightsScreen} options={{ title: 'Flights' }} />
-            <Stack.Screen name="Community" component={CommunityScreen} options={{ title: 'Community' }} />
-            <Stack.Screen name="CommunityInsights" component={CommunityInsightsScreen} options={{ title: 'Insights' }} />
-            <Stack.Screen name="CommunityMap" component={CommunityMapScreen} options={{ title: 'Map' }} />
-            <Stack.Screen name="MyAlerts" component={MyAlertsScreen} options={{ title: 'My Alerts' }} />
-            {false && <Stack.Screen name="TopTours" component={() => null} />}
-            <Stack.Screen name="Payment" component={PaymentScreen} options={{ title: 'Payment' }} />
-            <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
-            {false && <Stack.Screen name="Payment" component={() => null} />}
-            {/* Dev-only screen for quick API checks on web */}
-            {Platform.OS === 'web' && (
-              <Stack.Screen name="ApiTest" component={ApiTestScreen} options={{ title: 'API Test' }} />
-            )}
-          </>
-        ) : (
-          // Usuario no logueado → Auth + Registro
-          <>
-            <Stack.Screen name="Auth" component={AuthScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Create Account' }} />
-            {/* Dev-only screen also available when logged out (web) */}
-            {Platform.OS === 'web' && (
-              <Stack.Screen name="ApiTest" component={ApiTestScreen} options={{ title: 'API Test' }} />
-            )}
-          </>
-        )}
-      </Stack.Navigator>
+  // Modo mínimo para aislar errores base
+  if (minimalNav) {
+    const Simple = () => (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ fontSize: 18 }}>WadaTrip Minimal Nav OK</Text>
+      </View>
+    );
+    return (
+      <SafePaperProvider>
+        <NavigationContainer>
+          <Stack.Navigator>
+            <Stack.Screen name="Simple" component={Simple} options={{ title: "Simple" }} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafePaperProvider>
+    );
+  }
 
-      {/* Global WadaAgent overlay when logged in (native only) */}
-      {user && WadaAgentComp ? <WadaAgentComp /> : null}
-    </NavigationContainer>
-    {/* Floating Dev button (web only) */}
-    {Platform.OS === 'web' && (
-      <View
-        style={{
-          position: 'absolute',
-          right: 16,
-          bottom: 16,
-          zIndex: 1000,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => {
-            if (navigationRef.isReady()) navigationRef.navigate('ApiTest');
-          }}
-          style={{
-            backgroundColor: '#1d3557',
-            paddingVertical: 10,
-            paddingHorizontal: 14,
-            borderRadius: 20,
-            shadowColor: '#000',
-            shadowOpacity: 0.2,
-            shadowRadius: 4,
-          }}
-        >
-          <ActivityIndicator color="#fff" animating={false} />
-          <View style={{ position: 'absolute', left: 12, right: 12, alignItems: 'center' }}>
-            <Text style={{ color: '#fff', fontWeight: '800' }}>Dev</Text>
+  return (
+    <SafePaperProvider>
+      <NavigationContainer ref={navigationRef}>
+        <StatusBar backgroundColor="#2a9d8f" barStyle="light-content" />
+        {(!Stack?.Navigator || !Tab?.Navigator) ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator />
+            <View style={{ height: 12 }} />
+            <Text>Navigator not ready</Text>
+            <Text style={{ marginTop: 8, fontSize: 12, color: '#6c757d' }}>Check React Navigation versions/alignment</Text>
           </View>
-        </TouchableOpacity>
-      </View>
-    )}
-    {/* Auth bypass banner */}
-    {bypassAuth && (
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 6, backgroundColor: '#fde047' }}>
-        <Text style={{ textAlign: 'center', fontWeight: '800', color: '#1f2937' }}>Auth bypass active (dev)</Text>
-      </View>
-    )}
-    </PaperProvider>
+        ) : user ? (
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              headerBackTitleVisible: false,
+              headerTitleAlign: "center",
+              headerTintColor: "#ffffff",
+              headerTitleStyle: { fontWeight: "700", color: "#ffffff" },
+              headerShadowVisible: false,
+              // Si quieres reactivar el gradiente:
+              // headerBackground: () => <HeaderBackground />,
+            }}
+          >
+            <Stack.Screen name="Home" component={ensureScreen(HomeScreen, "HomeScreen")} options={{ headerShown: false }} />
+            <Stack.Screen name="Flights" component={FlightsComp} options={{ headerShown: true, title: 'Flights', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
+            <Stack.Screen name="Itinerary" component={ensureScreen(ItineraryScreen, "ItineraryScreen")} options={{ headerShown: true, title: 'Itinerary', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
+            <Stack.Screen name="MyAlerts" component={ensureScreen(MyAlertsScreen, "MyAlertsScreen")} options={{ headerShown: true, title: 'My Alerts', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
+            <Stack.Screen name="Community" component={ensureScreen(CommunityScreen, "CommunityScreen")} options={{ headerShown: true, title: 'Community', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
+            <Stack.Screen name="ToursDeals" component={ensureScreen(ToursDealsScreen, "ToursDealsScreen")} options={{ headerShown: true, title: 'Tours & Deals', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
+            <Stack.Screen name="Reserve" component={ensureScreen(ReserveBookingScreen, "ReserveBookingScreen")} options={{ headerShown: true, title: 'Reserve Tour', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
+            <Stack.Screen name="ProviderSignup" component={ensureScreen(ProviderSignupScreen, "ProviderSignupScreen")} options={{ headerShown: true, title: 'Become a guide / operator', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
+            <Stack.Screen name="CreateListing" component={ensureScreen(CreateListingScreen, "CreateListingScreen")} options={{ headerShown: true, title: 'Create tour', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
+          </Stack.Navigator>
+        ) : (
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen
+              name="Login"
+              component={ensureScreen(LoginScreen, "LoginScreen")}
+              options={{ headerShown: false }}
+            />
+          </Stack.Navigator>
+        )}
+
+        {/* WadaAgent overlay (actívalo si lo necesitas) */}
+{enableAgent && WadaAgentComp ? (
+          <WadaAgentComp
+            onGenerateItinerary={() => {
+              try {
+                if (navigationRef.isReady()) navigationRef.navigate("Itinerary");
+              } catch {}
+            }}
+          />
+        ) : null}
+      </NavigationContainer>
+
+      {/* Banner si bypass de auth (opcional) */}
+      {bypassAuth && showBypassBanner && (
+        <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: 6, backgroundColor: "#fde047" }} />
+      )}
+    </SafePaperProvider>
   );
 }
 

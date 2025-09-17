@@ -1,223 +1,141 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Platform } from 'react-native';
-import { auth, db } from '../services/firebase';
-import { collection, onSnapshot, query, where, orderBy, deleteDoc, doc, limit, updateDoc } from 'firebase/firestore';
-import { Linking } from 'react-native';
-
-function formatDate(ts) {
-  try {
-    if (!ts) return '';
-    const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleString();
-  } catch {
-    return '';
-  }
-}
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Platform, ActivityIndicator } from 'react-native';
+import { extractErrorDetails } from '../lib/errors';
 
 export default function MyAlertsScreen() {
-  const [tab, setTab] = useState('flights'); // 'flights' | 'tours' | 'recs' | 'signals'
-  const [flights, setFlights] = useState([]);
-  const [tours, setTours] = useState([]);
-  const [recs, setRecs] = useState([]);
-  const [signals, setSignals] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [error, setError] = useState('');
+  const [errorDetails, setErrorDetails] = useState('');
+  const [showDetails, setShowDetails] = useState(false);
 
-  const uid = auth.currentUser?.uid || null;
+  const mapHttpError = (e) => {
+    const status = (e && (e.status || 0)) || 0;
+    if (status === 400) return 'Bad request';
+    if (status === 401) return 'Unauthorized, check token';
+    if (status >= 500) return 'Server error, try again';
+    return 'Network error, please try again';
+  };
 
-  useEffect(() => {
-    if (!uid) return;
-    const q = query(collection(db, 'flightAlerts'), where('uid', '==', uid), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const rows = [];
-      snap.forEach((d) => rows.push({ id: d.id, ...d.data() }));
-      setFlights(rows);
-    });
-    return () => unsub();
-  }, [uid]);
-
-  useEffect(() => {
-    if (!uid) return;
-    const q = query(collection(db, 'tourAlerts'), where('uid', '==', uid), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const rows = [];
-      snap.forEach((d) => rows.push({ id: d.id, ...d.data() }));
-      setTours(rows);
-    });
-    return () => unsub();
-  }, [uid]);
-
-  useEffect(() => {
-    if (!uid) return;
-    const q = query(collection(db, 'tourRecommendations'), where('uid', '==', uid), orderBy('createdAt', 'desc'), limit(20));
-    const unsub = onSnapshot(q, (snap) => {
-      const rows = [];
-      snap.forEach((d) => rows.push({ id: d.id, ...d.data() }));
-      setRecs(rows);
-    });
-    return () => unsub();
-  }, [uid]);
-
-  useEffect(() => {
-    if (!uid) return;
-    const q = query(collection(db, 'userNotifications'), where('uid', '==', uid), orderBy('createdAt', 'desc'), limit(50));
-    const unsub = onSnapshot(q, (snap) => {
-      const rows = [];
-      snap.forEach((d) => rows.push({ id: d.id, ...d.data() }));
-      setSignals(rows);
-    });
-    return () => unsub();
-  }, [uid]);
-
-  const onDelete = async (type, id) => {
+  const loadAlerts = async () => {
+    setLoading(true);
+    setError('');
+    setErrorDetails('');
+    setShowDetails(false);
     try {
-      const path = type === 'flight' ? 'flightAlerts' : 'tourAlerts';
-      await deleteDoc(doc(db, path, id));
+      const { listAlerts } = await import('../lib/api');
+      const items = await listAlerts();
+      setAlerts(Array.isArray(items) ? items : []);
     } catch (e) {
-      console.error('Delete error', e);
-      Alert.alert('Error', 'Could not delete alert');
+      console.error(e);
+      setError(mapHttpError(e));
+      const detail = extractErrorDetails(e);
+      if (detail) setErrorDetails(detail);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const renderFlight = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.title}>{item.origin} → {item.destination}</Text>
-      <Text style={styles.meta}>Budget: ${item.budget} · Flex: {item.maxWaitHours}h · {item.status || 'active'}</Text>
-      <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
-      <View style={styles.rowRight}>
-        <TouchableOpacity
-          style={[styles.btn, item.status === 'paused' ? styles.resume : styles.pause]}
-          onPress={async () => {
-            try {
-              await updateDoc(doc(db, 'flightAlerts', item.id), { status: item.status === 'paused' ? 'active' : 'paused' });
-            } catch (e) { Alert.alert('Error', 'Could not update alert'); }
-          }}
-        >
-          <Text style={styles.btnText}>{item.status === 'paused' ? 'Resume' : 'Pause'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.btn, styles.delete]} onPress={() => onDelete('flight', item.id)}>
-          <Text style={styles.btnText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  useEffect(() => {
+    loadAlerts();
+  }, []);
 
-  const renderTour = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.title}>Where: {item.destination}</Text>
-      <Text style={styles.meta}>Budget: {item.budgetMin ? `$${item.budgetMin}` : '—'} – {item.budgetMax ? `$${item.budgetMax}` : '—'} · Window: {item.decisionDays || '—'}d · {item.status || 'active'}</Text>
-      <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
-      <View style={styles.rowRight}>
-        <TouchableOpacity
-          style={[styles.btn, item.status === 'paused' ? styles.resume : styles.pause]}
-          onPress={async () => {
-            try {
-              await updateDoc(doc(db, 'tourAlerts', item.id), { status: item.status === 'paused' ? 'active' : 'paused' });
-            } catch (e) { Alert.alert('Error', 'Could not update alert'); }
-          }}
-        >
-          <Text style={styles.btnText}>{item.status === 'paused' ? 'Resume' : 'Pause'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.btn, styles.delete]} onPress={() => onDelete('tour', item.id)}>
-          <Text style={styles.btnText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  const subscribe = async () => {
+    setSubscribing(true);
+    setError('');
+    setErrorDetails('');
+    setShowDetails(false);
+    try {
+      const { subscribeAlert } = await import('../lib/api');
+      await subscribeAlert({ route: 'MEX-CUN' });
+      await loadAlerts();
+    } catch (e) {
+      console.error(e);
+      setError(mapHttpError(e));
+      const detail = extractErrorDetails(e);
+      if (detail) setErrorDetails(detail);
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
-  const renderRec = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.title}>Recommendations for {item.destination}</Text>
-      <Text style={styles.meta}>{formatDate(item.createdAt)} · {item.recommendations?.length || 0} items</Text>
-      {(item.recommendations || []).slice(0, 3).map((r) => (
-        <TouchableOpacity
-          key={r.id}
-          onPress={() => r.url ? Linking.openURL(r.url) : null}
-          disabled={!r.url}
-        >
-          <Text style={[styles.recLine, !r.url && { opacity: 0.6 }]}>• {r.title} — ${r.price} — ⭐ {r.rating} ({r.reviews}){r.url ? ' ↗' : ''}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+  const keyExtractor = (item, idx) => String(item.id || item.route || idx);
 
-  const renderSignal = ({ item }) => {
-    const affiliate = item?.meta?.result?.affiliate_link || null;
-    const offers = item?.meta?.result?.offers || [];
+  const renderItem = ({ item }) => {
+    const route = typeof item.route === 'string' ? item.route : [item.origin, item.destination].filter(Boolean).join('-');
     return (
       <View style={styles.card}>
-        <Text style={styles.title}>{item.title || 'Flight Alert'}</Text>
-        <Text style={styles.meta}>{item.meta?.origin} → {item.meta?.destination}</Text>
-        <Text style={styles.meta}>Budget ${item.meta?.budget} · Recommendation {item.meta?.result?.recommendation}</Text>
-        {offers?.length ? (
-          <Text style={styles.meta}>Cheapest: ${offers[0]?.price} {offers[0]?.currency} · via {offers[0]?.provider}</Text>
-        ) : null}
-        <Text style={styles.time}>{formatDate(item.createdAt)}</Text>
-        {affiliate ? (
-          <View style={styles.rowRight}>
-            <TouchableOpacity style={[styles.btn, { backgroundColor: '#3a86ff' }]} onPress={() => Linking.openURL(affiliate)}>
-              <Text style={styles.btnText}>Reservar ↗</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+        <Text style={styles.title}>{route || 'Route'}</Text>
+        {'current_price' in item && (<Text style={styles.meta}>Current: ${item.current_price}</Text>)}
+        {'predicted_low' in item && (<Text style={styles.meta}>Predicted low: ${item.predicted_low}</Text>)}
+        {'action' in item && (<Text style={styles.meta}>Action: {String(item.action).toUpperCase()}</Text>)}
       </View>
     );
   };
 
-  const data = tab === 'flights' ? flights : tab === 'tours' ? tours : tab === 'recs' ? recs : signals;
-  const renderer = tab === 'flights' ? renderFlight : tab === 'tours' ? renderTour : tab === 'recs' ? renderRec : renderSignal;
-
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: Platform.OS === 'ios' ? 50 : 20 }]}>
       <Text style={styles.header}>My Alerts</Text>
-      <View style={styles.tabs}>
-        <TouchableOpacity style={[styles.tab, tab === 'flights' && styles.tabActive]} onPress={() => setTab('flights')}>
-          <Text style={[styles.tabText, tab === 'flights' && styles.tabTextActive]}>Flights</Text>
+
+      <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+        <TouchableOpacity style={[styles.btn, { backgroundColor: '#2a9d8f', opacity: subscribing ? 0.75 : 1 }]} onPress={subscribe} disabled={subscribing}>
+          <Text style={styles.btnText}>{subscribing ? 'Subscribing…' : 'Subscribe (MEX-CUN)'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, tab === 'tours' && styles.tabActive]} onPress={() => setTab('tours')}>
-          <Text style={[styles.tabText, tab === 'tours' && styles.tabTextActive]}>Tours</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, tab === 'recs' && styles.tabActive]} onPress={() => setTab('recs')}>
-          <Text style={[styles.tabText, tab === 'recs' && styles.tabTextActive]}>Recommendations</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, tab === 'signals' && styles.tabActive]} onPress={() => setTab('signals')}>
-          <Text style={[styles.tabText, tab === 'signals' && styles.tabTextActive]}>Signals</Text>
+        <TouchableOpacity style={[styles.btn, { backgroundColor: '#1d3557', marginTop: 8, opacity: loading ? 0.75 : 1 }]} onPress={loadAlerts} disabled={loading}>
+          <Text style={styles.btnText}>{loading ? 'Refreshing…' : 'Refresh'}</Text>
         </TouchableOpacity>
       </View>
 
-      {!uid ? (
-        <View style={styles.center}><Text>Please sign in to see your alerts.</Text></View>
-      ) : (
-        <FlatList
-          data={data}
-          keyExtractor={(i) => i.id}
-          renderItem={renderer}
-          ListEmptyComponent={<View style={styles.center}><Text>No items.</Text></View>}
-          contentContainerStyle={!data.length ? styles.listEmpty : styles.list}
-        />
+      {loading && (
+        <View style={styles.loadingRow}><ActivityIndicator color="#2a9d8f" /><Text style={styles.loadingText}> Loading…</Text></View>
       )}
+
+      {!!error && (
+        <View style={styles.errorPanel}>
+          <Text style={styles.errorText}>{error}</Text>
+          {!!errorDetails && (
+            <TouchableOpacity style={[styles.btn, { backgroundColor: '#6c757d', marginTop: 6 }]} onPress={() => setShowDetails((v) => !v)}>
+              <Text style={styles.btnText}>{showDetails ? 'Hide details' : 'Show details'}</Text>
+            </TouchableOpacity>
+          )}
+          {showDetails && !!errorDetails && (
+            <View style={styles.detailsBox}>
+              <Text selectable style={styles.detailsText}>{errorDetails}</Text>
+            </View>
+          )}
+          <TouchableOpacity style={[styles.btn, { backgroundColor: '#1d3557', marginTop: 6 }]} onPress={loadAlerts}>
+            <Text style={styles.btnText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <FlatList
+        data={alerts}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ListEmptyComponent={!loading ? <View style={styles.center}><Text>No alerts yet.</Text></View> : null}
+        contentContainerStyle={!alerts.length ? styles.listEmpty : styles.list}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa', paddingTop: Platform.OS === 'ios' ? 50 : 20 },
+  container: { flex: 1, backgroundColor: '#f8f9fa' },
   header: { fontSize: 22, fontWeight: '800', color: '#1d3557', paddingHorizontal: 16, marginBottom: 8 },
-  tabs: { flexDirection: 'row', paddingHorizontal: 12, marginBottom: 8 },
-  tab: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: '#eef2f7', marginRight: 8 },
-  tabActive: { backgroundColor: '#2a9d8f' },
-  tabText: { color: '#1d3557', fontWeight: '700' },
-  tabTextActive: { color: '#fff' },
   list: { padding: 12 },
   listEmpty: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   center: { padding: 24 },
-  card: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4, elevation: 2 },
+  card: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e9ecef' },
   title: { fontSize: 16, fontWeight: '800', color: '#1d3557' },
   meta: { color: '#6c757d', marginTop: 4 },
-  time: { color: '#adb5bd', marginTop: 2 },
-  recLine: { color: '#333', marginTop: 4 },
-  rowRight: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 },
-  btn: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8 },
-  delete: { backgroundColor: '#e63946' },
-  pause: { backgroundColor: '#ffbe0b', marginRight: 8 },
-  resume: { backgroundColor: '#2a9d8f', marginRight: 8 },
+  btn: { paddingHorizontal: 10, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700' },
+  errorPanel: { backgroundColor: '#ffe8e8', borderColor: '#f5c2c7', borderWidth: 1, padding: 12, borderRadius: 8, marginHorizontal: 16, marginBottom: 8 },
+  errorText: { color: '#b02a37', fontWeight: '600' },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 },
+  loadingText: { marginLeft: 8, color: '#1d3557' },
+  detailsBox: { marginTop: 6, backgroundColor: '#fff', borderWidth: 1, borderColor: '#f1f3f5', borderRadius: 6, padding: 10 },
+  detailsText: { color: '#1d3557', fontSize: 12 },
 });

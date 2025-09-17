@@ -30,6 +30,14 @@ if (!['en', 'es', 'fr'].includes(deviceLanguage)) {
   deviceLanguage = 'en';
 }
 
+// Optional override via env/extra to force a default language during testing
+try {
+  const extra = (global?.expo?.ExpoModules?.ExponentConstants?.appOwnership ? {} : (require('expo-constants')?.default?.expoConfig?.extra)) || {};
+  const envLang = (typeof process !== 'undefined' ? process?.env?.EXPO_PUBLIC_DEFAULT_LANG : undefined);
+  const forced = String(extra?.DEFAULT_LANG || envLang || '').toLowerCase();
+  if (forced && ['en','es','fr'].includes(forced)) deviceLanguage = forced;
+} catch {}
+
 i18n
   .use(initReactI18next)
   .init({

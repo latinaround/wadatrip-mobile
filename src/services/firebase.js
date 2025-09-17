@@ -1,16 +1,19 @@
 // src/services/firebase.js
-import { initializeApp } from "firebase/app";
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  OAuthProvider 
+import { initializeApp, getApps, getApp } from "firebase/app";
+import {
+  getAuth,
+  initializeAuth,
+  getReactNativePersistence,
+  GoogleAuthProvider,
+  OAuthProvider,
 } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
-import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import Constants from "expo-constants";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
 // 🔥 Configuración de Firebase para WadaTrip Nuevo
 const firebaseConfig = {
@@ -20,14 +23,28 @@ const firebaseConfig = {
   storageBucket: "wadatrip-nuevo.firebasestorage.app",
   messagingSenderId: "981114942208",
   appId: "1:981114942208:web:e5502a1698dcd0065cf9e5",
-  // measurementId: "G-XXXXXXX" // 👈 activa Analytics en Firebase Console si quieres usarlo
+  // measurementId: "G-XXXXXXX" // opcional para Analytics
 };
 
-// 🚀 Inicializar Firebase
-const app = initializeApp(firebaseConfig);
+// 🚀 Inicializar Firebase app solo una vez
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// 🔑 Autenticación
-export const auth = getAuth(app);
+// 🔑 Autenticación (AsyncStorage en RN para persistencia)
+let auth;
+if (Platform.OS === "web") {
+  auth = getAuth(app);
+} else {
+  try {
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (e) {
+    // Si ya estaba inicializado, obtener el existente
+    auth = getAuth(app);
+  }
+}
+
+export { auth };
 export const googleProvider = new GoogleAuthProvider();
 export const appleProvider = new OAuthProvider("apple.com");
 
@@ -37,7 +54,7 @@ export const db = getFirestore(app);
 // 🗄 Storage (Archivos e imágenes)
 export const storage = getStorage(app);
 
-// 📊 Analytics (solo si está disponible en la plataforma)
+// 📊 Analytics (solo si está soportado)
 export let analytics = null;
 isSupported().then((supported) => {
   if (supported) {
@@ -45,10 +62,9 @@ isSupported().then((supported) => {
   }
 });
 
-// 🔔 Push Notifications (Expo Notifications)
-// En web, expo-notifications no está plenamente soportado; evita configurar handler para prevenir errores.
+// 🔔 Notificaciones Push (Expo Notifications)
 try {
-  if (Platform.OS !== 'web' && typeof Notifications.setNotificationHandler === 'function') {
+  if (Platform.OS !== "web" && typeof Notifications.setNotificationHandler === "function") {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowAlert: true,
@@ -58,55 +74,56 @@ try {
     });
   }
 } catch (e) {
-  // No-op: en plataformas sin soporte, ignorar
+  console.log("⚠️ Notifications handler not set:", e.message);
 }
 
-// 👉 Función para solicitar permisos y obtener el token de notificación
+// 👉 Solicitar permisos y obtener token
 export const requestForToken = async () => {
-  const { status } = await Notifications.requestPermissionsAsync();
-  if (status !== 'granted') {
-    alert('Please enable notifications to receive alerts.');
-    console.log('⚠️ Notifications permission denied.');
-    return null;
-  }
-
-  // Configuración del canal de notificación para Android
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
-    });
-  }
-
   try {
-    // Usa el EAS projectId (UUID) para obtener el token de Expo Push
-    const easProjectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
-    const args = easProjectId ? { projectId: easProjectId } : undefined;
-    const resp = await Notifications.getExpoPushTokenAsync(args);
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== "granted") {
+      console.log("⚠️ Notifications permission denied.");
+      return null;
+    }
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+    }
+
+    // Only request Expo push token if we have a projectId available
+    const easProjectId =
+      (Constants?.expoConfig?.extra && Constants.expoConfig.extra.eas && Constants.expoConfig.extra.eas.projectId) ||
+      Constants?.easConfig?.projectId ||
+      process?.env?.EXPO_PUBLIC_EAS_PROJECT_ID;
+
+    if (!easProjectId) {
+      console.log("ℹ️ Skipping Expo push token in dev (no projectId)");
+      return null;
+    }
+
+    const resp = await Notifications.getExpoPushTokenAsync({ projectId: easProjectId });
     const token = resp?.data;
-    console.log('✅ Notification token (Expo):', token);
+    console.log("✅ Notification token (Expo):", token);
     return token;
   } catch (error) {
-    console.error('❌ Error getting Expo token:', error);
+    console.error("❌ Error getting Expo token:", error);
     return null;
   }
 };
 
-// 👉 Listener para recibir notificaciones (reemplaza a onMessageListener)
-// Esta función ahora configura un listener en lugar de devolver una promesa.
-// Deberá ser ajustada en App.js
+// 👉 Listener de notificaciones
 export const setupNotificationListeners = () => {
-  // Se ejecuta cuando se recibe una notificación mientras la app está en primer plano
-  const foregroundSubscription = Notifications.addNotificationReceivedListener(notification => {
-    console.log('📩 Foreground notification received:', notification);
+  const foregroundSubscription = Notifications.addNotificationReceivedListener((notification) => {
+    console.log("📩 Foreground notification received:", notification);
   });
 
-  // Se ejecuta cuando un usuario toca una notificación
-  const backgroundSubscription = Notifications.addNotificationResponseReceivedListener(response => {
-    console.log('👆 User interacted with notification:', response);
-    // Aquí puedes agregar lógica para navegar a una pantalla específica
+  const backgroundSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    console.log("👆 User interacted with notification:", response);
   });
 
   return () => {
