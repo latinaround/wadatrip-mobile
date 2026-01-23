@@ -8,6 +8,7 @@ export default function CreateListingScreen({ route, navigation }) {
   const initialProvider = (route?.params && route.params.provider) || null;
   const [providerId, setProviderId] = useState(String(initialProvider?.id || ''));
   const [providerStatus, setProviderStatus] = useState(String(initialProvider?.status || ''));
+  const [accessCode, setAccessCode] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('tour'); // tour|activity|transfer|custom
@@ -36,6 +37,10 @@ export default function CreateListingScreen({ route, navigation }) {
   useEffect(() => { if (providerId && !providerStatus) fetchProvider(providerId); }, []);
 
   const onSubmit = async () => {
+    if (!accessCode.trim()) {
+      Alert.alert(t('error', 'Error'), t('listing.access_code_required', 'Access code is required'));
+      return;
+    }
     if (!providerId) { Alert.alert(t('error', 'Error'), t('listing.enter_provider_id', 'Enter your Provider ID')); return; }
     try {
       const p = await getProvider(String(providerId));
@@ -65,6 +70,7 @@ export default function CreateListingScreen({ route, navigation }) {
         endDate: endDate || undefined,
         tags: tags ? tags.split(',').map((s) => s.trim()).filter(Boolean) : [],
         status: 'published',
+        access_code: accessCode.trim(),
       };
       const res = await createListing(body);
       Alert.alert(t('success', 'Success'), t('listing.published_ok', 'Your tour has been created'));
@@ -83,7 +89,8 @@ export default function CreateListingScreen({ route, navigation }) {
       keyboardShouldPersistTaps="handled"
       overScrollMode="always"
     >
-      <Text style={styles.title}>{t('listing.create_title', 'Create Tour / Service')}</Text>
+      <Text style={styles.title}>{t('listing.create_title', 'Create a tour')}</Text>
+      <Text style={styles.subtitle}>{t('listing.subtitle', 'Publish a new experience for travelers. Required fields are marked.')}</Text>
 
       <Text style={styles.label}>{t('listing.provider_id', 'Provider ID')}</Text>
       <TextInput style={styles.input} value={providerId} onChangeText={setProviderId} placeholder="prov_..." autoCapitalize='none' />
@@ -91,7 +98,11 @@ export default function CreateListingScreen({ route, navigation }) {
         <Text style={[styles.hint, providerStatus === 'verified' ? styles.verified : styles.pending]}>{t('listing.status', 'Status')}: {providerStatus}</Text>
       )}
 
-      <Text style={styles.label}>{t('listing.title', 'Title')}</Text>
+      <Text style={styles.label}>{t('listing.access_code', 'Access code')}</Text>
+      <TextInput style={styles.input} value={accessCode} onChangeText={setAccessCode} placeholder="WADA2026" autoCapitalize='characters' />
+      <Text style={styles.helper}>{t('listing.access_code_hint', 'Use the code provided by Wadatrip to publish tours.')}</Text>
+
+      <Text style={styles.label}>{t('listing.title', 'Tour title')}</Text>
       <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="City walking tour" />
 
       <Text style={styles.label}>{t('listing.description', 'Description')}</Text>
@@ -121,10 +132,10 @@ export default function CreateListingScreen({ route, navigation }) {
       <Text style={styles.label}>{t('listing.currency', 'Currency')}</Text>
       <TextInput style={styles.input} value={currency} onChangeText={setCurrency} placeholder="USD" autoCapitalize='characters' />
 
-      <Text style={styles.label}>{t('listing.start_date', 'Start date')}</Text>
+      <Text style={styles.label}>{t('listing.start_date', 'Start date (optional)')}</Text>
       <TextInput style={styles.input} value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" />
 
-      <Text style={styles.label}>{t('listing.end_date', 'End date')}</Text>
+      <Text style={styles.label}>{t('listing.end_date', 'End date (optional)')}</Text>
       <TextInput style={styles.input} value={endDate} onChangeText={setEndDate} placeholder="YYYY-MM-DD" />
 
       <Text style={styles.label}>{t('listing.tags', 'Tags (comma)')}</Text>
@@ -139,9 +150,11 @@ export default function CreateListingScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { padding: 16, backgroundColor: '#f8f9fa' },
-  title: { fontSize: 20, fontWeight: '800', color: '#1d3557', marginBottom: 12 },
+  title: { fontSize: 22, fontWeight: '800', color: '#1d3557', marginBottom: 4 },
+  subtitle: { color: '#6c757d', marginBottom: 12 },
   label: { fontWeight: '700', color: '#1d3557', marginTop: 10, marginBottom: 6 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e9ecef', borderRadius: 8, padding: 10 },
+  helper: { color: '#6c757d', fontSize: 12, marginTop: 4 },
   hint: { marginTop: 4 },
   verified: { color: '#2a9d8f' },
   pending: { color: '#e67e22' },
