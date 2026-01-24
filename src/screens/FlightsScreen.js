@@ -41,21 +41,20 @@ export default function FlightsScreen() {
       const min = parseNumber(budgetMin);
       const max = parseNumber(budgetMax);
       const hasBudget = (min != null && min > 0) || (max != null && max > 0);
-      if (hasBudget) {
-        const { subscribeAlert } = await import('../lib/api');
-        await subscribeAlert({
-          route: { origin, destination },
-          budget_min: min ?? undefined,
-          budget_max: max ?? undefined,
-          adults: parseInt(adults || '1', 10) || 1,
-          dates: { depart: departDate || undefined, return: returnDate || undefined, flex_days: parseInt(flexDays || '0', 10) || 0 },
-        });
-        const mode = getApiMode();
-        Alert.alert('Alert created', mode === 'mock' ? 'Your price alert was created (mock).' : 'Your price alert was created.');
-        try { navigation.navigate('MyAlerts'); } catch {}
-      } else {
-        Alert.alert('Search submitted', 'Connect backend in live mode to search flights.');
-      }
+      const { subscribeAlert } = await import('../lib/api');
+      await subscribeAlert({
+        route: { origin, destination },
+        budget_min: min ?? undefined,
+        budget_max: max ?? undefined,
+        adults: parseInt(adults || '1', 10) || 1,
+        dates: { depart: departDate || undefined, return: returnDate || undefined, flex_days: parseInt(flexDays || '0', 10) || 0 },
+      });
+      const mode = getApiMode();
+      const message = hasBudget
+        ? (mode === 'mock' ? 'Your budget alert was created (mock).' : 'Your budget alert was created.')
+        : (mode === 'mock' ? 'Your ADRED alert was created (mock).' : 'We will notify you when ADRED recommends buy or optimize.');
+      Alert.alert('Alert created', message);
+      try { navigation.navigate('MyAlerts'); } catch {}
     } catch (e) {
       console.error(e);
       setError('Could not create alert');
