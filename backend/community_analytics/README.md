@@ -72,3 +72,24 @@ Install deps:
 ```
 pip install -r backend/community_analytics/requirements.txt
 ```
+## Deployment
+
+### Render (recommended)
+1. Asegúrate de tener el repo en GitHub y el archivo `render.yaml` en la raíz.
+2. En [Render](https://render.com), crea un nuevo **Blueprint** y apunta al repositorio.
+3. Render detectará `render.yaml` y creará el servicio web usando el Dockerfile ubicado en `backend/community_analytics/Dockerfile`.
+4. Configura las variables de entorno obligatorias (`FIRESTORE_PROJECT_ID`, credenciales de proveedores, etc.).
+5. Tras el deploy, obtén la URL pública (`https://<tu-servicio>.onrender.com`) y úsala como API pública para la app móvil (`EXPO_PUBLIC_API_BASE_URL`).
+
+### Railway / Heroku
+- Railway: importa el repo, selecciona **Deploy from Repo** y crea un servicio Docker apuntando al mismo Dockerfile.
+- Heroku: utiliza el `Procfile` y `runtime.txt`. Ejecuta `heroku git:remote`, `heroku config:set ...` y `git push heroku main`.
+
+### Variables clave
+- `PORT`: Render/Railway la definen automáticamente (fallback 8080 en Dockerfile/Procfile).
+- `GOOGLE_APPLICATION_CREDENTIALS`: apunta a la ruta del JSON de servicio o define variables de FIRESTORE.
+- `SIMULATE_FLIGHTS`: establece `1` para usar datos de ejemplo cuando faltan credenciales reales.
+
+Una vez desplegado, actualiza la app móvil:
+- `EXPO_PUBLIC_API_BASE_URL` con la URL pública.
+- Opcional: `EXPO_PUBLIC_API_FALLBACK_URL` como respaldo por si el endpoint local no responde.

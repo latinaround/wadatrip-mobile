@@ -7,23 +7,19 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:981114942208:android:03c568f02dbbfffa5cf9e5",
+        "mobilesdk_app_id": "1:981114942208:android:2f3d99c98c0785995cf9e5",
         "android_client_info": {
-          "package_name": "com.wadatrip.mobile"
+          "package_name": "com.kiaradiaz0249.wadatripweb"
         }
       },
       "oauth_client": [
         {
-          "client_id": "981114942208-8hsf2u8833vlpuia4l9jmeus9sdd650p.apps.googleusercontent.com",
+          "client_id": "981114942208-70ds765g081l3o55va1rrupo83s36pqf.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.wadatrip.mobile",
-            "certificate_hash": "473bb13ee6d3511ab44634e6f553de3231eac68d"
+            "package_name": "com.kiaradiaz0249.wadatripweb",
+            "certificate_hash": "d5511f1abbf2431ceaae0822a169f00918b5c796"
           }
-        },
-        {
-          "client_id": "981114942208-3vt939n6s9oi4makjptlt01m0li95ps7.apps.googleusercontent.com",
-          "client_type": 3
         }
       ],
       "api_key": [
@@ -35,36 +31,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "981114942208-3vt939n6s9oi4makjptlt01m0li95ps7.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:981114942208:android:e4c9e47655d770af5cf9e5",
-        "android_client_info": {
-          "package_name": "wadatrip.traveler.gs"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "981114942208-3vt939n6s9oi4makjptlt01m0li95ps7.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDLET2NxvDDnw5AqP9Ton1WVo1tSt0U8XA"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "981114942208-3vt939n6s9oi4makjptlt01m0li95ps7.apps.googleusercontent.com",
+              "client_id": "981114942208-d39vpc1hmisismpl48b24iiilqql7fkf.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

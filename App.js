@@ -20,7 +20,7 @@ if (typeof __DEV__ !== 'undefined' && __DEV__) {
 import ItineraryScreen from "./src/screens/ItineraryScreen";
 import FlightsScreen from "./src/screens/FlightsScreen";
 import MyAlertsScreen from "./src/screens/MyAlertsScreen";
-import ToursDealsScreen from "./src/screens/ToursDealsScreen";
+import ToursScreen from "./src/screens/ToursScreen";
 import CommunityScreen from "./src/screens/CommunityScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import ReserveBookingScreen from "./src/screens/ReserveBookingScreen";
@@ -68,10 +68,11 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
 
-  const bypassAuth = process.env.EXPO_PUBLIC_BYPASS_AUTH === "true";
-  const showBypassBanner = process.env.EXPO_PUBLIC_SHOW_BYPASS_BANNER === "true";
-  const minimalNav = process.env.EXPO_PUBLIC_MINIMAL_NAV === "true";
-  const disablePaper = process.env.EXPO_PUBLIC_DISABLE_PAPER === "true";
+  const extra = (Constants && Constants.expoConfig && Constants.expoConfig.extra) || {};
+  const bypassAuth = process.env.EXPO_PUBLIC_BYPASS_AUTH === "true" || extra.BYPASS_AUTH === true;
+  const showBypassBanner = process.env.EXPO_PUBLIC_SHOW_BYPASS_BANNER === "true" || extra.SHOW_BYPASS_BANNER === true;
+  const minimalNav = process.env.EXPO_PUBLIC_MINIMAL_NAV === "true" || extra.MINIMAL_NAV === true;
+  const disablePaper = process.env.EXPO_PUBLIC_DISABLE_PAPER === "true" || extra.DISABLE_PAPER === true;
   const useSimpleFlights =
     (typeof process !== "undefined" &&
       process.env &&
@@ -225,7 +226,7 @@ export default function App() {
             <Stack.Screen name="Itinerary" component={ensureScreen(ItineraryScreen, "ItineraryScreen")} options={{ headerShown: true, title: 'Itinerary', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
             <Stack.Screen name="MyAlerts" component={ensureScreen(MyAlertsScreen, "MyAlertsScreen")} options={{ headerShown: true, title: 'My Alerts', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
             <Stack.Screen name="Community" component={ensureScreen(CommunityScreen, "CommunityScreen")} options={{ headerShown: true, title: 'Community', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
-            <Stack.Screen name="ToursDeals" component={ensureScreen(ToursDealsScreen, "ToursDealsScreen")} options={{ headerShown: true, title: 'Tours & Deals', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
+            <Stack.Screen name="ToursDeals" component={ensureScreen(ToursScreen, "ToursScreen")} options={{ headerShown: true, title: 'Tours', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
             <Stack.Screen name="Reserve" component={ensureScreen(ReserveBookingScreen, "ReserveBookingScreen")} options={{ headerShown: true, title: 'Reserve Tour', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
             <Stack.Screen name="ProviderSignup" component={ensureScreen(ProviderSignupScreen, "ProviderSignupScreen")} options={{ headerShown: true, title: 'Become a guide / operator', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
             <Stack.Screen name="CreateListing" component={ensureScreen(CreateListingScreen, "CreateListingScreen")} options={{ headerShown: true, title: 'Create tour', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />

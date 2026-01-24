@@ -1,4 +1,4 @@
-package com.wadatrip.mobile
+package com.kiaradiaz0249.wadatripweb
 
 import android.os.Build
 import android.os.Bundle

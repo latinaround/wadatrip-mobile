@@ -1,0 +1,27 @@
+﻿services:
+  - type: web
+    name: wadatrip-community-analytics
+    env: docker
+    plan: starter
+    autoDeploy: true
+    dockerfilePath: backend/community_analytics/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: FIRESTORE_PROJECT_ID
+        sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        sync: false
+      - key: TRAVELPAYOUTS_TOKEN
+        sync: false
+      - key: AMADEUS_CLIENT_ID
+        sync: false
+      - key: AMADEUS_CLIENT_SECRET
+        sync: false
+      - key: AFFILIATE_ID_TP
+        sync: false
+      - key: AFFILIATE_ID_AMA
+        sync: false
+      - key: SIMULATE_FLIGHTS
+        value: "1"
