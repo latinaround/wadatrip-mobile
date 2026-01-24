@@ -5,6 +5,7 @@ import {
   signInWithCredential,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   OAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
@@ -156,6 +157,22 @@ export default function AuthScreen() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Enter your email to reset the password.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      Alert.alert('Password reset', 'Check your email for reset instructions.');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Could not send reset email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Función para procesar el token de Google con Firebase
   const handleGoogleSignIn = async (idToken) => {
     if (!idToken) return;
@@ -278,6 +295,15 @@ export default function AuthScreen() {
           Continue with Apple
         </Button>
       )}
+
+      <Button
+        mode="text"
+        onPress={handleForgotPassword}
+        disabled={loading}
+        style={styles.linkButton}
+      >
+        Forgot password?
+      </Button>
 
       <Button
         mode="text"
