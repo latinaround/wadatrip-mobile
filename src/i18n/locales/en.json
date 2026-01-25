@@ -1,0 +1,87 @@
+{
+  "your_travel_companion": "Your Travel Companion",
+  "quick_actions": "Quick Actions",
+  "explore": "Explore",
+  "search": {
+    "title": "Search Flights"
+  },
+  "flightAlert": {
+    "title": "Price Alerts",
+    "subtitle": "Get notifications when prices change",
+    "active": "{{count}} active"
+  },
+  "itinerary": {
+    "title": "Itinerary",
+    "subtitle": "Plan and organize your perfect trip"
+  },
+  "community": {
+    "title": "Community",
+    "subtitle": "Connect with fellow travelers"
+  },
+  "error": "Error",
+  "fill_all_fields": "Please fill in all fields.",
+  "success": "Success",
+  "alert_created_message": "Alert for {{location}} will be sent to {{email}}.",
+  "itinerary_promo": "Create an alert for the best itinerary deals!",
+  "location": "Location",
+  "enter_location": "Enter a location",
+  "email": "Email",
+  "enter_email": "Enter your email",
+  "create_alert": "Create Alert"
+  ,
+  "home": {
+    "become_provider": "Become a guide / operator",
+    "become_provider_sub": "Sign up and publish tours"
+  },
+  "provider": {
+    "title": "Become a guide",
+    "subtitle": "Create your operator profile to start publishing tours.",
+    "type": "Account type",
+    "guide": "Guide",
+    "operator": "Operator",
+    "name": "Display name",
+    "email": "Email",
+    "phone_optional": "Phone (optional)",
+    "base_city": "Base city",
+    "country": "Country (ISO-2)",
+    "languages": "Languages (optional)",
+    "access_code": "Access code",
+    "access_code_required": "Access code is required",
+    "access_code_hint": "Use the code provided by Wadatrip to submit your profile.",
+    "submit": "Submit",
+    "submitted": "Submitted",
+    "created_ok": "Your profile was created. Pending verification.",
+    "created_title": "Registration created",
+    "created_id": "ID",
+    "created_status": "Status",
+    "created_hint": "We will verify your profile. Once approved, you can publish tours.",
+    "create_first_tour": "Create my first tour",
+    "missing_fields": "Please fill required fields"
+  },
+  "listing": {
+    "create_title": "Create a tour",
+    "subtitle": "Publish a new experience for travelers. Required fields are marked.",
+    "provider_id": "Provider ID",
+    "status": "Status",
+    "access_code": "Access code",
+    "access_code_required": "Access code is required",
+    "access_code_hint": "Use the code provided by Wadatrip to publish tours.",
+    "title": "Tour title",
+    "description": "Description",
+    "category": "Category",
+    "city": "City",
+    "country": "Country (ISO-2)",
+    "duration": "Duration (minutes)",
+    "price_min": "Minimum price",
+    "currency": "Currency",
+    "start_date": "Start date (optional)",
+    "end_date": "End date (optional)",
+    "tags": "Tags (comma)",
+    "publish": "Publish tour",
+    "publishing": "Publishing...",
+    "published_ok": "Your tour has been created",
+    "must_verified": "Your account must be verified by an admin before publishing tours.",
+    "enter_provider_id": "Enter your Provider ID",
+    "missing_fields": "Complete the required fields"
+  }
+}

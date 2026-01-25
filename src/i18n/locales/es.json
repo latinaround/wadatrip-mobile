@@ -1,0 +1,18 @@
+{
+  "search": {
+    "title": "Buscar Vuelos"
+  },
+  "flightAlert": {
+    "title": "Alertas de Precios",
+    "subtitle": "Recibe notificaciones cuando cambien los precios",
+    "active": "{{count}} alertas activas"
+  },
+  "itinerary": {
+    "title": "Itinerario",
+    "subtitle": "Planifica y organiza tu viaje perfecto"
+  },
+  "community": {
+    "title": "Comunidad",
+    "subtitle": "Conéctate con otros viajeros"
+  }
+}

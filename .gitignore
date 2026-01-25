@@ -20,6 +20,9 @@ web-build/
 # Metro
 .metro-health-check*
 
+# EAS inspect artifacts
+eas-inspect/
+
 # debug
 npm-debug.*
 yarn-debug.*
