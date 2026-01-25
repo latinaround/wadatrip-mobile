@@ -5,8 +5,10 @@ import { ensureUserProfile, getUserProfile } from '../services/userProfile';
 import { updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { useTranslation } from 'react-i18next';
 
 export default function ProfileScreen({ navigation }) {
+  const { i18n } = useTranslation();
   const user = auth.currentUser;
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
@@ -62,6 +64,24 @@ export default function ProfileScreen({ navigation }) {
       <Text style={styles.label}>Photo URL</Text>
       <TextInput style={styles.input} value={photoURL} onChangeText={setPhotoURL} placeholder="https://..." autoCapitalize="none" />
 
+      <Text style={styles.sectionTitle}>Language</Text>
+      <View style={styles.langRow}>
+        {[
+          { code: 'en', label: 'English' },
+          { code: 'es', label: 'Español' },
+          { code: 'fr', label: 'Français' },
+          { code: 'zh', label: '中文' },
+        ].map((lang) => (
+          <TouchableOpacity
+            key={lang.code}
+            style={[styles.langChip, i18n.language === lang.code && styles.langChipActive]}
+            onPress={() => i18n.changeLanguage(lang.code)}
+          >
+            <Text style={[styles.langText, i18n.language === lang.code && styles.langTextActive]}>{lang.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <TouchableOpacity style={[styles.button, styles.primary]} onPress={onSave} disabled={saving}>
         <Text style={styles.buttonText}>{saving ? 'Saving…' : 'Save'}</Text>
       </TouchableOpacity>
@@ -89,4 +109,12 @@ const styles = StyleSheet.create({
   avatar: { width: 96, height: 96, borderRadius: 48 },
   avatarPlaceholder: { backgroundColor: '#ced4da', alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 36, fontWeight: '800', color: '#fff' },
+  sectionTitle: { marginTop: 16, fontWeight: '800', color: '#1d3557' },
+  langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  langChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: '#eef2f7' },
+  langChipActive: { backgroundColor: '#00b8b8' },
+  langText: { color: '#1d3557', fontWeight: '700' },
+  langTextActive: { color: '#fff' },
 });
+
+

@@ -6,11 +6,13 @@ import { getLocales } from 'expo-localization';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import fr from './locales/fr.json';
+import zh from './locales/zh.json';
 
 const resources = {
   en: { translation: en },
   es: { translation: es },
   fr: { translation: fr },
+  zh: { translation: zh },
 };
 
 // Detect device language safely
@@ -26,7 +28,7 @@ try {
 }
 
 // Ensure only supported languages are used
-if (!['en', 'es', 'fr'].includes(deviceLanguage)) {
+if (!['en', 'es', 'fr', 'zh'].includes(deviceLanguage)) {
   deviceLanguage = 'en';
 }
 
@@ -35,7 +37,7 @@ try {
   const extra = (global?.expo?.ExpoModules?.ExponentConstants?.appOwnership ? {} : (require('expo-constants')?.default?.expoConfig?.extra)) || {};
   const envLang = (typeof process !== 'undefined' ? process?.env?.EXPO_PUBLIC_DEFAULT_LANG : undefined);
   const forced = String(extra?.DEFAULT_LANG || envLang || '').toLowerCase();
-  if (forced && ['en','es','fr'].includes(forced)) deviceLanguage = forced;
+  if (forced && ['en','es','fr','zh'].includes(forced)) deviceLanguage = forced;
 } catch {}
 
 i18n
