@@ -69,8 +69,13 @@ export default function ProviderSignupScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.label}>{t('provider.name', 'Display name')}</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} placeholder={t('provider.name', 'Your brand or guide name')} />
+      <Text style={styles.label}>{type === 'guide' ? 'Guide name' : 'Operator name'}</Text>
+      <TextInput
+        style={styles.input}
+        value={name}
+        onChangeText={setName}
+        placeholder={type === 'guide' ? 'Your guide name' : 'Your operator name'}
+      />
 
       <Text style={styles.label}>{t('provider.email', 'Email')}</Text>
       <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="email@domain.com" keyboardType="email-address" autoCapitalize='none' />
