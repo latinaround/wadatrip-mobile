@@ -19,8 +19,13 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.headerTitle}>WadaTrip</Text>
         </View>
         <Text style={styles.headerSubtitle}>Plan, alert, and explore smarter</Text>
-        <View style={styles.modeChip}>
-          <Text style={styles.modeText}>{String(((Constants && Constants.expoConfig && Constants.expoConfig.extra) || {}).API_MODE || (typeof process !== 'undefined' ? process?.env?.EXPO_PUBLIC_API_MODE : '') || 'live').toUpperCase()}</Text>
+        <View style={styles.modeRow}>
+          <View style={styles.langIcon}>
+            {Ionicons ? <Ionicons name="globe-outline" size={14} color="#fff" /> : null}
+          </View>
+          <View style={styles.modeChip}>
+            <Text style={styles.modeText}>{String(((Constants && Constants.expoConfig && Constants.expoConfig.extra) || {}).API_MODE || (typeof process !== 'undefined' ? process?.env?.EXPO_PUBLIC_API_MODE : '') || 'live').toUpperCase()}</Text>
+          </View>
         </View>
         <Text style={styles.baseHint} numberOfLines={1}>API: {resolvedApiBase()}</Text>
       </View>
@@ -87,7 +92,9 @@ const styles = StyleSheet.create({
   logo: { width: 30, height: 30 },
   headerTitle: { color: '#ffffff', fontWeight: '800', fontSize: 24, letterSpacing: 0.2 },
   headerSubtitle: { color: 'rgba(255,255,255,0.9)', marginTop: 6 },
-  modeChip: { position: 'absolute', right: 12, top: 34, backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 },
+  modeRow: { position: 'absolute', right: 12, top: 34, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  langIcon: { backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 },
+  modeChip: { backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 },
   modeText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   baseHint: { position: 'absolute', left: 12, top: 36, color: 'rgba(255,255,255,0.85)', fontSize: 10, maxWidth: '60%' },
   grid: { padding: 16, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
