@@ -131,24 +131,27 @@ export default function ToursScreen() {
                 onChangeText={setDestination}
                 autoCapitalize="words"
               />
-              <View style={styles.rowBetween}>
-                <TouchableOpacity
-                  style={[styles.chip, anywhere && styles.chipActive]}
-                  onPress={() => {
-                    const next = !anywhere;
-                    setAnywhere(next);
-                    if (next) setDestination('');
-                  }}
-                >
-                  <Text style={[styles.chipText, anywhere && styles.chipTextActive]}>Anywhere</Text>
-                </TouchableOpacity>
-                <View style={{ flex: 1 }} />
-              </View>
-              <View style={styles.row}>
-                <TextInput
-                  style={[styles.input, styles.inputHalf]}
-                  placeholder="Budget min (optional)"
-                  keyboardType="numeric"
+        <View style={styles.rowBetween}>
+          <TouchableOpacity
+            style={[styles.chip, anywhere && styles.chipActive]}
+            onPress={() => {
+              const next = !anywhere;
+              setAnywhere(next);
+              if (next) setDestination('');
+            }}
+          >
+            <Text style={[styles.chipText, anywhere && styles.chipTextActive]}>Anywhere</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1 }} />
+        </View>
+        <Text style={styles.helper}>
+          Budget range (min and max)
+        </Text>
+        <View style={styles.row}>
+          <TextInput
+            style={[styles.input, styles.inputHalf]}
+            placeholder="Budget min (optional)"
+            keyboardType="numeric"
                   value={budgetMin}
                   onChangeText={setBudgetMin}
                 />
@@ -241,6 +244,7 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: '#2a9d8f' },
   chipText: { color: '#1d3557', fontWeight: '700' },
   chipTextActive: { color: '#fff' },
+  helper: { color: '#6c757d', fontSize: 12, marginBottom: 6 },
   banner: { backgroundColor: '#e6f4ff', borderWidth: 1, borderColor: '#cfe7ff', borderRadius: 10, marginHorizontal: 16, marginTop: 12, paddingVertical: 10, paddingHorizontal: 12 },
   bannerTitle: { color: '#1d3557', fontWeight: '800', fontSize: 16 },
   bannerSub: { color: '#3a86ff', marginTop: 2, fontWeight: '600' },
