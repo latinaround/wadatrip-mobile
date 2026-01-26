@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { createListing, getProvider } from '../lib/api';
+import { createListing, getProvider, getListing, updateListing, deleteListing } from '../lib/api';
 
 export default function CreateListingScreen({ route, navigation }) {
   const { t } = useTranslation();
@@ -9,6 +9,8 @@ export default function CreateListingScreen({ route, navigation }) {
   const [providerId, setProviderId] = useState(String(initialProvider?.id || ''));
   const [providerStatus, setProviderStatus] = useState(String(initialProvider?.status || ''));
   const [accessCode, setAccessCode] = useState('');
+  const [editLookup, setEditLookup] = useState('');
+  const [editingId, setEditingId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('tour'); // tour|activity|transfer|custom
@@ -21,6 +23,128 @@ export default function CreateListingScreen({ route, navigation }) {
   const [endDate, setEndDate] = useState('');
   const [tags, setTags] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const parseListingId = (input) => {
+    const raw = String(input || '').trim();
+    if (!raw) return '';
+    const cleaned = raw.split('?')[0].split('#')[0];
+    const parts = cleaned.split('/');
+    const last = parts[parts.length - 1] || '';
+    return last.trim();
+  };
+
+  const resetForm = () => {
+    setEditingId('');
+    setEditLookup('');
+    setTitle('');
+    setDescription('');
+    setCategory('tour');
+    setCity(String(initialProvider?.base_city || ''));
+    setCountry(String(initialProvider?.country_code || ''));
+    setDuration('');
+    setPriceFrom('');
+    setCurrency('USD');
+    setStartDate('');
+    setEndDate('');
+    setTags('');
+  };
+
+  const onLoadListing = async () => {
+    const id = parseListingId(editLookup);
+    if (!id) {
+      Alert.alert(t('error', 'Error'), 'Enter a tour ID or link');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await getListing(id);
+      if (!res?.id) {
+        Alert.alert(t('error', 'Error'), 'Tour not found');
+        return;
+      }
+      setEditingId(String(res.id));
+      if (res.provider_id) setProviderId(String(res.provider_id));
+      setTitle(String(res.title || ''));
+      setDescription(String(res.description || ''));
+      setCategory(String(res.category || 'tour'));
+      setCity(String(res.city || ''));
+      setCountry(String(res.country_code || ''));
+      setDuration(res.duration_minutes ? String(res.duration_minutes) : '');
+      setPriceFrom(res.price_from ? String(res.price_from) : '');
+      setCurrency(String(res.currency || 'USD'));
+      setStartDate(res.startDate ? String(res.startDate) : '');
+      setEndDate(res.endDate ? String(res.endDate) : '');
+      setTags(Array.isArray(res.tags) ? res.tags.join(',') : String(res.tags || ''));
+      Alert.alert('Loaded', 'Tour loaded. You can update or delete it.');
+    } catch (e) {
+      Alert.alert(t('error', 'Error'), String(e?.message || e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onUpdate = async () => {
+    if (!editingId) return;
+    if (!accessCode.trim()) {
+      Alert.alert(t('error', 'Error'), t('listing.access_code_required', 'Access code is required'));
+      return;
+    }
+    if (!title || !category || !city || !country) {
+      Alert.alert(t('error', 'Error'), t('listing.missing_fields', 'Complete the required fields'));
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const body = {
+        provider_id: String(providerId),
+        title: title.trim(),
+        description: description ? description.trim() : undefined,
+        category: category.trim(),
+        city: city.trim(),
+        country_code: country.trim().toUpperCase(),
+        duration_minutes: duration ? Number(duration) : undefined,
+        price_from: priceFrom ? Number(priceFrom) : undefined,
+        currency: currency.trim() || 'USD',
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        tags: tags ? tags.split(',').map((s) => s.trim()).filter(Boolean) : [],
+        access_code: accessCode.trim(),
+      };
+      await updateListing(String(editingId), body);
+      Alert.alert('Updated', 'Your tour has been updated');
+    } catch (e) {
+      Alert.alert(t('error', 'Error'), String(e?.message || e));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onDelete = async () => {
+    if (!editingId) return;
+    if (!accessCode.trim()) {
+      Alert.alert(t('error', 'Error'), t('listing.access_code_required', 'Access code is required'));
+      return;
+    }
+    Alert.alert('Delete tour', 'Are you sure you want to delete this tour?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setSubmitting(true);
+          try {
+            await deleteListing(String(editingId), accessCode.trim());
+            Alert.alert('Deleted', 'Tour removed');
+            resetForm();
+          } catch (e) {
+            Alert.alert(t('error', 'Error'), String(e?.message || e));
+          } finally {
+            setSubmitting(false);
+          }
+        },
+      },
+    ]);
+  };
 
   const fetchProvider = async (id) => {
     if (!id) return;
@@ -92,8 +216,15 @@ export default function CreateListingScreen({ route, navigation }) {
       <Text style={styles.title}>{t('listing.create_title', 'Create a tour')}</Text>
       <Text style={styles.subtitle}>{t('listing.subtitle', 'Publish a new experience for travelers. Required fields are marked.')}</Text>
 
+      <Text style={styles.sectionTitle}>Edit existing tour (optional)</Text>
+      <Text style={styles.helper}>Paste a tour ID or link, then load it to update.</Text>
+      <TextInput style={styles.input} value={editLookup} onChangeText={setEditLookup} placeholder="Tour ID or link" autoCapitalize='none' />
+      <TouchableOpacity style={[styles.button, styles.secondary]} onPress={onLoadListing} disabled={submitting}>
+        <Text style={styles.buttonText}>Load tour</Text>
+      </TouchableOpacity>
+
       <Text style={styles.label}>{t('listing.provider_id', 'Provider ID')}</Text>
-      <TextInput style={styles.input} value={providerId} onChangeText={setProviderId} placeholder="prov_..." autoCapitalize='none' />
+      <TextInput style={styles.input} value={providerId} onChangeText={setProviderId} placeholder="prov_..." autoCapitalize='none' editable={!editingId} />
       {!!providerStatus && (
         <Text style={[styles.hint, providerStatus === 'verified' ? styles.verified : styles.pending]}>{t('listing.status', 'Status')}: {providerStatus}</Text>
       )}
@@ -141,9 +272,23 @@ export default function CreateListingScreen({ route, navigation }) {
       <Text style={styles.label}>{t('listing.tags', 'Tags (comma)')}</Text>
       <TextInput style={styles.input} value={tags} onChangeText={setTags} placeholder="history,nature" />
 
-      <TouchableOpacity style={[styles.button, submitting && { opacity: 0.6 }]} onPress={onSubmit} disabled={submitting}>
-        <Text style={styles.buttonText}>{submitting ? t('listing.publishing', 'Publishing...') : t('listing.publish', 'Publish tour')}</Text>
-      </TouchableOpacity>
+      {editingId ? (
+        <>
+          <TouchableOpacity style={[styles.button, styles.primary, submitting && { opacity: 0.6 }]} onPress={onUpdate} disabled={submitting}>
+            <Text style={styles.buttonText}>{submitting ? 'Updating...' : 'Update tour'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.button, styles.danger, submitting && { opacity: 0.6 }]} onPress={onDelete} disabled={submitting}>
+            <Text style={styles.buttonText}>Delete tour</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.button, styles.secondary]} onPress={resetForm} disabled={submitting}>
+            <Text style={styles.buttonText}>Cancel edit</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <TouchableOpacity style={[styles.button, submitting && { opacity: 0.6 }]} onPress={onSubmit} disabled={submitting}>
+          <Text style={styles.buttonText}>{submitting ? t('listing.publishing', 'Publishing...') : t('listing.publish', 'Publish tour')}</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }
@@ -152,6 +297,7 @@ const styles = StyleSheet.create({
   container: { padding: 16, backgroundColor: '#f8f9fa' },
   title: { fontSize: 22, fontWeight: '800', color: '#1d3557', marginBottom: 4 },
   subtitle: { color: '#6c757d', marginBottom: 12 },
+  sectionTitle: { fontWeight: '800', color: '#1d3557', marginTop: 8, marginBottom: 4 },
   label: { fontWeight: '700', color: '#1d3557', marginTop: 10, marginBottom: 6 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e9ecef', borderRadius: 8, padding: 10 },
   helper: { color: '#6c757d', fontSize: 12, marginTop: 4 },
@@ -164,5 +310,7 @@ const styles = StyleSheet.create({
   chipText: { color: '#1d3557', fontWeight: '600' },
   chipTextActive: { color: '#fff' },
   button: { backgroundColor: '#2a9d8f', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 16 },
+  secondary: { backgroundColor: '#1d3557' },
+  danger: { backgroundColor: '#e63946' },
   buttonText: { color: '#fff', fontWeight: '700' },
 });

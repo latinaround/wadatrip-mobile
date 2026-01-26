@@ -470,6 +470,21 @@ export async function createListing(body: CreateListingInput): Promise<any> {
   return doFetch<any>(`/listings`, { method: 'POST', headers, body: JSON.stringify(body) });
 }
 
-export default { generateItinerary, predictPricing, listAlerts, subscribeAlert, getAlerts, getItineraries, getCommunityPosts, getDiagnostics, searchListings, createProvider, getProvider, createListing, createBooking, startCheckout };
+export type UpdateListingInput = Partial<CreateListingInput> & { access_code?: string };
+export async function getListing(id: string): Promise<any> {
+  return doFetch<any>(`/listings/${encodeURIComponent(id)}`, { method: 'GET' });
+}
+export async function updateListing(id: string, body: UpdateListingInput): Promise<any> {
+  const headers: Record<string, string> = {};
+  if (body?.access_code) headers['x-operator-access-code'] = String(body.access_code);
+  return doFetch<any>(`/listings/${encodeURIComponent(id)}`, { method: 'PATCH', headers, body: JSON.stringify(body) });
+}
+export async function deleteListing(id: string, accessCode?: string): Promise<any> {
+  const headers: Record<string, string> = {};
+  if (accessCode) headers['x-operator-access-code'] = String(accessCode);
+  return doFetch<any>(`/listings/${encodeURIComponent(id)}`, { method: 'DELETE', headers });
+}
+
+export default { generateItinerary, predictPricing, listAlerts, subscribeAlert, getAlerts, getItineraries, getCommunityPosts, getDiagnostics, searchListings, createProvider, getProvider, createListing, getListing, updateListing, deleteListing, createBooking, startCheckout };
 
 
