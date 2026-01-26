@@ -59,8 +59,8 @@ export default function ProfileScreen({ navigation }) {
         )}
       </View>
 
-      <Text style={styles.label}>Display name</Text>
-      <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Your name" />
+      <Text style={styles.label}>Guide name</Text>
+      <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Your guide name" />
       <Text style={styles.label}>Photo URL</Text>
       <TextInput style={styles.input} value={photoURL} onChangeText={setPhotoURL} placeholder="https://..." autoCapitalize="none" />
 
