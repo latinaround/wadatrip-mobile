@@ -80,6 +80,13 @@ export default function HomeScreen({ navigation }) {
           </View>
           <Text style={styles.tileText}>{t('home.become_provider_sub', 'Sign up and publish tours')}</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={[styles.tile, styles.c8]} onPress={() => navigation.navigate('Profile')}>
+          <View style={styles.iconRow}>
+            {Ionicons ? <Ionicons name="person-circle-outline" size={20} color="#00b8b8" /> : null}
+            <Text style={styles.tileTitle}>Profile</Text>
+          </View>
+          <Text style={styles.tileText}>Language & account</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -109,4 +116,5 @@ const styles = StyleSheet.create({
   c5: { borderLeftWidth: 3, borderLeftColor: '#ff8a3d' },
   c6: { borderLeftWidth: 3, borderLeftColor: '#00b8b8' },
   c7: { borderLeftWidth: 3, borderLeftColor: '#ff2aa1' },
+  c8: { borderLeftWidth: 3, borderLeftColor: '#00b8b8' },
 });
