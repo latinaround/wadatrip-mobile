@@ -1,18 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Image, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { auth } from '../services/firebase';
 import { ensureUserProfile, getUserProfile } from '../services/userProfile';
 import { updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useTranslation } from 'react-i18next';
+import { searchListings } from '../lib/api';
 
 export default function ProfileScreen({ navigation }) {
   const { i18n } = useTranslation();
   const user = auth.currentUser;
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
+  const [providerId, setProviderId] = useState('');
   const [saving, setSaving] = useState(false);
+  const [tours, setTours] = useState([]);
+  const [loadingTours, setLoadingTours] = useState(false);
+  const [toursError, setToursError] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -21,10 +26,30 @@ export default function ProfileScreen({ navigation }) {
         if (p) {
           if (p.displayName && !displayName) setDisplayName(p.displayName);
           if (p.photoURL && !photoURL) setPhotoURL(p.photoURL);
+          if (p.providerId) setProviderId(String(p.providerId));
         }
       }
     })();
   }, []);
+
+  const loadMyTours = async (id) => {
+    const pid = String(id || '').trim();
+    if (!pid) {
+      setTours([]);
+      return;
+    }
+    setLoadingTours(true);
+    setToursError('');
+    try {
+      const items = await searchListings({ provider_id: pid, status: 'published', limit: 50 });
+      setTours(Array.isArray(items) ? items : []);
+    } catch (e) {
+      console.error('Load tours error', e);
+      setToursError('Could not load tours');
+    } finally {
+      setLoadingTours(false);
+    }
+  };
 
   const onSave = async () => {
     if (!user) return;
@@ -37,6 +62,7 @@ export default function ProfileScreen({ navigation }) {
         email: user.email || null,
         displayName,
         photoURL: photoURL || null,
+        providerId: providerId ? String(providerId).trim() : null,
         updatedAt: serverTimestamp(),
       }, { merge: true });
       Alert.alert('Saved', 'Your profile was updated');
@@ -49,7 +75,12 @@ export default function ProfileScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 60 }}
+      showsVerticalScrollIndicator={true}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.header}>My Profile</Text>
       <View style={styles.avatarRow}>
         {photoURL ? (
@@ -63,6 +94,11 @@ export default function ProfileScreen({ navigation }) {
       <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Your guide name" />
       <Text style={styles.label}>Photo URL</Text>
       <TextInput style={styles.input} value={photoURL} onChangeText={setPhotoURL} placeholder="https://..." autoCapitalize="none" />
+      <Text style={styles.label}>Provider ID</Text>
+      <TextInput style={styles.input} value={providerId} onChangeText={setProviderId} placeholder="cmk..." autoCapitalize="none" />
+      <TouchableOpacity style={[styles.button, styles.secondary]} onPress={() => loadMyTours(providerId)} disabled={loadingTours}>
+        <Text style={styles.buttonText}>{loadingTours ? 'Loading...' : 'Load my tours'}</Text>
+      </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Language</Text>
       <View style={styles.langRow}>
@@ -83,8 +119,24 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       <TouchableOpacity style={[styles.button, styles.primary]} onPress={onSave} disabled={saving}>
-        <Text style={styles.buttonText}>{saving ? 'Saving…' : 'Save'}</Text>
+        <Text style={styles.buttonText}>{saving ? 'Saving.' : 'Save'}</Text>
       </TouchableOpacity>
+
+      <Text style={styles.sectionTitle}>My tours</Text>
+      {loadingTours ? (
+        <ActivityIndicator style={{ marginTop: 8 }} />
+      ) : toursError ? (
+        <Text style={styles.errorText}>{toursError}</Text>
+      ) : tours.length ? (
+        tours.map((tour) => (
+          <View key={tour.id} style={styles.tourCard}>
+            <Text style={styles.tourTitle}>{tour.title}</Text>
+            <Text style={styles.tourMeta}>{tour.city} · {tour.currency || 'USD'} {tour.price_from || ''}</Text>
+          </View>
+        ))
+      ) : (
+        <Text style={styles.helperText}>No tours loaded yet.</Text>
+      )}
 
       {/* Quick test payment entry */}
       <TouchableOpacity
@@ -93,7 +145,7 @@ export default function ProfileScreen({ navigation }) {
       >
         <Text style={styles.buttonText}>Test Payment ($19.99)</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -104,6 +156,7 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
   button: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 14 },
   primary: { backgroundColor: '#2a9d8f' },
+  secondary: { backgroundColor: '#1d3557' },
   buttonText: { color: '#fff', fontWeight: '800' },
   avatarRow: { alignItems: 'center', marginBottom: 8 },
   avatar: { width: 96, height: 96, borderRadius: 48 },
@@ -115,6 +168,9 @@ const styles = StyleSheet.create({
   langChipActive: { backgroundColor: '#00b8b8' },
   langText: { color: '#1d3557', fontWeight: '700' },
   langTextActive: { color: '#fff' },
+  tourCard: { marginTop: 10, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e9ecef', backgroundColor: '#fff' },
+  tourTitle: { fontWeight: '800', color: '#1d3557' },
+  tourMeta: { color: '#6c757d', marginTop: 4 },
+  helperText: { color: '#6c757d', marginTop: 8 },
+  errorText: { color: '#b02a37', marginTop: 8 },
 });
-
-
