@@ -1,6 +1,6 @@
 // src/screens/CommunityScreen.js
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, TextInput, Button, ActivityIndicator, Switch, StyleSheet } from "react-native";
+import { View, Text, FlatList, TextInput, Button, ActivityIndicator, Switch, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import {

@@ -363,10 +363,10 @@ const ItineraryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f8fbfc',
   },
   header: {
-    backgroundColor: '#457b9d',
+    backgroundColor: '#00c6c6',
     padding: 20,
     alignItems: 'center',
   },
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   button: {
-    backgroundColor: '#e63946',
+    backgroundColor: '#ff2aa1',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -434,6 +434,7 @@ const styles = StyleSheet.create({
   });
 
 export default ItineraryScreen;
+
 
 
 
