@@ -122,21 +122,21 @@ export default function ProviderSignupScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, backgroundColor: '#f8f9fa' },
-  title: { fontSize: 22, fontWeight: '800', color: '#1d3557', marginBottom: 4 },
+  container: { padding: 16, backgroundColor: '#f8fbfc' },
+  title: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
   subtitle: { color: '#6c757d', marginBottom: 12 },
-  label: { fontWeight: '700', color: '#1d3557', marginTop: 10, marginBottom: 6 },
+  label: { fontWeight: '700', color: '#0f172a', marginTop: 10, marginBottom: 6 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e9ecef', borderRadius: 8, padding: 10 },
   helper: { color: '#6c757d', fontSize: 12, marginTop: 4 },
   row: { flexDirection: 'row', gap: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#eef2f7' },
-  chipActive: { backgroundColor: '#2a9d8f' },
+  chipActive: { backgroundColor: '#00b8b8' },
   chipText: { color: '#1d3557', fontWeight: '600' },
   chipTextActive: { color: '#fff' },
-  button: { backgroundColor: '#e63946', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 16 },
+  button: { backgroundColor: '#ff2aa1', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 16 },
   buttonText: { color: '#fff', fontWeight: '700' },
   resultBox: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#e9ecef', padding: 12, marginTop: 16 },
-  resultTitle: { fontWeight: '800', color: '#1d3557', marginBottom: 6 },
+  resultTitle: { fontWeight: '800', color: '#0f172a', marginBottom: 6 },
   resultText: { color: '#495057' },
   resultHint: { color: '#6c757d', marginTop: 4 },
 });

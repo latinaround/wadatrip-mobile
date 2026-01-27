@@ -71,11 +71,12 @@ export default function PaymentScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa', paddingTop: Platform.OS === 'ios' ? 50 : 20, paddingHorizontal: 16 },
-  header: { fontSize: 22, fontWeight: '800', color: '#1d3557' },
+  header: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
   meta: { color: '#6c757d', marginBottom: 12 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
   card: { width: '100%', height: 50, marginVertical: 12 },
   button: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 6 },
-  primary: { backgroundColor: '#2a9d8f' },
+  primary: { backgroundColor: '#00b8b8' },
   buttonText: { color: '#fff', fontWeight: '800' },
 });
+

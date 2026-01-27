@@ -66,7 +66,7 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.heroHeader}>
         {LinearGradient ? (
-          <LinearGradient colors={["#2a9d8f", "#3a86ff"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={["#00b8b8", "#ff2aa1"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
         ) : null}
         <View style={styles.brandRow}>
           <Image source={require('../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
@@ -110,18 +110,19 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
-  heroHeader: { paddingTop: 48, paddingBottom: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2a9d8f' },
+  heroHeader: { paddingTop: 48, paddingBottom: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#00b8b8' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   brandTitle: { color: '#fff', fontWeight: '800', fontSize: 22 },
   brandSubtitle: { color: '#e9f5ff', marginTop: 4 },
   panel: { backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#e9ecef', padding: 16, width: '88%', maxWidth: 420, alignSelf: 'center', marginTop: 16 },
-  title: { fontSize: 20, fontWeight: '800', color: '#1d3557', marginBottom: 12 },
+  title: { fontSize: 20, fontWeight: '800', color: '#0f172a', marginBottom: 12 },
   input: { borderWidth: 1, borderColor: '#ced4da', borderRadius: 8, padding: 12, marginBottom: 10 },
   button: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 6 },
-  primary: { backgroundColor: '#2a9d8f' },
+  primary: { backgroundColor: '#00b8b8' },
   secondary: { backgroundColor: '#457b9d' },
   link: { backgroundColor: 'transparent' },
   buttonText: { color: '#fff', fontWeight: '700' },
-  linkText: { color: '#2a9d8f', fontWeight: '700' },
+  linkText: { color: '#00b8b8', fontWeight: '700' },
   error: { color: '#b02a37', marginBottom: 6, fontWeight: '600' },
 });
+

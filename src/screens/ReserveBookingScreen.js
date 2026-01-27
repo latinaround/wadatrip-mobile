@@ -65,16 +65,17 @@ export default function ReserveBookingScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa', padding: 16 },
-  title: { fontSize: 20, fontWeight: '800', color: '#1d3557' },
+  title: { fontSize: 20, fontWeight: '800', color: '#0f172a' },
   subtitle: { color: '#6c757d', marginTop: 4, marginBottom: 10 },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  label: { color: '#1d3557', fontWeight: '700' },
+  label: { color: '#0f172a', fontWeight: '700' },
   value: { color: '#333' },
   field: { marginTop: 10 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e9ecef', borderRadius: 8, padding: 10 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
-  total: { color: '#1d3557', fontWeight: '800' },
-  button: { backgroundColor: '#2a9d8f', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
+  total: { color: '#0f172a', fontWeight: '800' },
+  button: { backgroundColor: '#00b8b8', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 20 },
   buttonText: { color: '#fff', fontWeight: '700' },
 });
+
 

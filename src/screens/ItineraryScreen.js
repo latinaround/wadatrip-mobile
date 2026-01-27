@@ -227,7 +227,7 @@ const ItineraryScreen = () => {
           </View>
           <View style={[styles.inputGroup, styles.half]} />
         </View>
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#2a9d8f', marginTop: 10 }]} onPress={async () => {
+        <TouchableOpacity style={[styles.button, { backgroundColor: '#00b8b8', marginTop: 10 }]} onPress={async () => {
           setLoading(true);
           try {
             const { generateItinerary } = await import('../lib/api');
@@ -249,12 +249,12 @@ const ItineraryScreen = () => {
         </TouchableOpacity>
 
         {/* Price predictions (moved from Flights) */}
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#1d3557', marginTop: 10 }]} onPress={checkPredictions}>
+        <TouchableOpacity style={[styles.button, { backgroundColor: '#0f172a', marginTop: 10 }]} onPress={checkPredictions}>
           <Text style={styles.buttonText}>{loadingPred ? 'Checking…' : 'Check Price Predictions'}</Text>
         </TouchableOpacity>
         {predictions?.length ? (
           <View style={{ marginTop: 12 }}>
-            <Text style={{ fontWeight: '800', color: '#1d3557', marginBottom: 6 }}>Price Predictions</Text>
+            <Text style={{ fontWeight: '800', color: '#0f172a', marginBottom: 6 }}>Price Predictions</Text>
             {predictions.map((p, idx) => (
               <View key={idx} style={styles.itinCard}>
                 <Text style={styles.itinTitle}>{[p?.route?.origin || origin, p?.route?.destination || destination].filter(Boolean).join('-')}</Text>
@@ -270,7 +270,7 @@ const ItineraryScreen = () => {
         {/* Tours available at your destination (mock) */}
           {!!destTours?.length && (
             <View style={{ marginTop: 20 }}>
-            <Text style={{ fontWeight: '800', color: '#1d3557', marginBottom: 8 }}>Tours available at your destination</Text>
+            <Text style={{ fontWeight: '800', color: '#0f172a', marginBottom: 8 }}>Tours available at your destination</Text>
             {destTours.map((t) => (
               <View key={t.id} style={styles.tourCard}>
                   <Text style={styles.tourTitle}>{t.title}</Text>
@@ -281,7 +281,7 @@ const ItineraryScreen = () => {
                     <Text style={styles.tourMeta}>Dates: {fmt(t.startDate) || '—'} - {fmt(t.endDate) || '—'}</Text>
                   )}
                 <Text style={styles.tourMeta}>{t.currency ? `${t.currency} ` : '$'}{t.price} · ⭐ {t.rating ?? 0} ({t.reviews ?? 0})</Text>
-                  <TouchableOpacity style={[styles.button, { backgroundColor: '#2a9d8f', marginTop: 8 }]} onPress={() => { try { if (typeof navigation !== 'undefined') navigation.navigate('Reserve', { listing: t }); } catch {} }}>
+                  <TouchableOpacity style={[styles.button, { backgroundColor: '#00b8b8', marginTop: 8 }]} onPress={() => { try { if (typeof navigation !== 'undefined') navigation.navigate('Reserve', { listing: t }); } catch {} }}>
                     <Text style={styles.buttonText}>Reserve</Text>
                   </TouchableOpacity>
               </View>
@@ -292,12 +292,12 @@ const ItineraryScreen = () => {
         {/* Sample itineraries list (mock mode) */}
         {loadingItins ? (
           <View style={{ marginTop: 20 }}>
-            <Text style={{ color: '#1d3557' }}>Loading itineraries…</Text>
+            <Text style={{ color: '#0f172a' }}>Loading itineraries…</Text>
           </View>
         ) : (itineraries?.length ? (
           <View style={{ marginTop: 20 }}>
-            <Text style={{ fontWeight: '800', color: '#1d3557', marginBottom: 8 }}>Sample Itineraries</Text>
-            <TouchableOpacity style={[styles.button, { backgroundColor: '#1d3557', marginBottom: 10 }]} onPress={refreshItineraries}>
+            <Text style={{ fontWeight: '800', color: '#0f172a', marginBottom: 8 }}>Sample Itineraries</Text>
+            <TouchableOpacity style={[styles.button, { backgroundColor: '#0f172a', marginBottom: 10 }]} onPress={refreshItineraries}>
               <Text style={styles.buttonText}>Refresh Itineraries</Text>
             </TouchableOpacity>
             {itineraries.map((it) => (
@@ -318,7 +318,7 @@ const ItineraryScreen = () => {
             ))}
           </View>
         ) : null)}
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#2a9d8f', marginTop: 10 }]} onPress={async () => {
+        <TouchableOpacity style={[styles.button, { backgroundColor: '#00b8b8', marginTop: 10 }]} onPress={async () => {
           const min = parseNumber(budgetMin); const max = parseNumber(budgetMax);
           if (!destination || min == null || max == null) return;
           setLoading(true);
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
   promoText: {
     fontSize: 18,
     textAlign: 'center',
-    color: '#1d3557',
+    color: '#0f172a',
     marginBottom: 30,
   },
   inputGroup: {
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1d3557',
+    color: '#0f172a',
     marginBottom: 8,
   },
   input: {
@@ -409,15 +409,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   itinCard: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e9ecef' },
-  itinTitle: { fontWeight: '800', color: '#1d3557' },
+  itinTitle: { fontWeight: '800', color: '#0f172a' },
   itinMeta: { color: '#6c757d', marginTop: 4 },
   itinAct: { color: '#333', marginTop: 2 },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   half: { width: '48%' },
   flexGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   flexBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#eef2f7' },
-  flexBtnActive: { backgroundColor: '#2a9d8f' },
-  flexBtnText: { color: '#1d3557', fontWeight: '600' },
+  flexBtnActive: { backgroundColor: '#00b8b8' },
+  flexBtnText: { color: '#0f172a', fontWeight: '600' },
   flexBtnTextActive: { color: '#fff' },
   buttonText: {
     color: '#fff',
@@ -425,15 +425,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   scenarioCard: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#e9ecef' },
-  scenarioTitle: { fontWeight: '800', color: '#1d3557', marginBottom: 6 },
+  scenarioTitle: { fontWeight: '800', color: '#0f172a', marginBottom: 6 },
   scenarioMeta: { color: '#333', marginTop: 2 },
     tourCard: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#e9ecef' },
-    tourTitle: { fontWeight: '800', color: '#1d3557' },
+    tourTitle: { fontWeight: '800', color: '#0f172a' },
     tourDesc: { color: '#495057', marginTop: 6 },
     tourMeta: { color: '#6c757d', marginTop: 4 },
   });
 
 export default ItineraryScreen;
+
 
 
 

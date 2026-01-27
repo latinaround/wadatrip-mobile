@@ -119,15 +119,15 @@ export default function FlightsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, backgroundColor: '#f8f9fa' },
-  title: { fontSize: 20, fontWeight: '700', color: '#1d3557', marginBottom: 10 },
+  container: { padding: 16, backgroundColor: '#f8fbfc' },
+  title: { fontSize: 20, fontWeight: '700', color: '#0f172a', marginBottom: 10 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
-  label: { color: '#1d3557', marginTop: 8, marginBottom: 6, fontWeight: '600' },
+  label: { color: '#0f172a', marginTop: 8, marginBottom: 6, fontWeight: '600' },
   button: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 6 },
-  primary: { backgroundColor: '#2a9d8f' },
+  primary: { backgroundColor: '#00b8b8' },
   buttonText: { color: '#fff', fontWeight: '600' },
   errorPanel: { backgroundColor: '#ffe8e8', borderColor: '#f5c2c7', borderWidth: 1, padding: 12, borderRadius: 8, marginTop: 10 },
   errorText: { color: '#b02a37', marginBottom: 6, fontWeight: '600' },
   loadingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  loadingText: { marginLeft: 8, color: '#1d3557' },
+  loadingText: { marginLeft: 8, color: '#0f172a' },
 });

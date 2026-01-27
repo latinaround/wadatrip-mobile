@@ -294,11 +294,11 @@ export default function CreateListingScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, backgroundColor: '#f8f9fa' },
-  title: { fontSize: 22, fontWeight: '800', color: '#1d3557', marginBottom: 4 },
+  container: { padding: 16, backgroundColor: '#f8fbfc' },
+  title: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 4 },
   subtitle: { color: '#6c757d', marginBottom: 12 },
   sectionTitle: { fontWeight: '800', color: '#1d3557', marginTop: 8, marginBottom: 4 },
-  label: { fontWeight: '700', color: '#1d3557', marginTop: 10, marginBottom: 6 },
+  label: { fontWeight: '700', color: '#0f172a', marginTop: 10, marginBottom: 6 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e9ecef', borderRadius: 8, padding: 10 },
   helper: { color: '#6c757d', fontSize: 12, marginTop: 4 },
   hint: { marginTop: 4 },
@@ -306,11 +306,11 @@ const styles = StyleSheet.create({
   pending: { color: '#e67e22' },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#eef2f7' },
-  chipActive: { backgroundColor: '#2a9d8f' },
+  chipActive: { backgroundColor: '#00b8b8' },
   chipText: { color: '#1d3557', fontWeight: '600' },
   chipTextActive: { color: '#fff' },
-  button: { backgroundColor: '#2a9d8f', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 16 },
-  secondary: { backgroundColor: '#1d3557' },
-  danger: { backgroundColor: '#e63946' },
+  button: { backgroundColor: '#00b8b8', padding: 14, borderRadius: 8, alignItems: 'center', marginTop: 16 },
+  secondary: { backgroundColor: '#ff8a3d' },
+  danger: { backgroundColor: '#ff2aa1' },
   buttonText: { color: '#fff', fontWeight: '700' },
 });

@@ -157,7 +157,7 @@ export default function CommunityScreen() {
         <View style={styles.heroHeader}>
           {LinearGradient ? (
             <LinearGradient
-              colors={["#2a9d8f", "#3a86ff"]}
+              colors={["#00c6c6", "#ff2aa1"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={StyleSheet.absoluteFill}
@@ -257,7 +257,7 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 0 },
+  container: { flex: 1, padding: 0, backgroundColor: '#f8fbfc' },
   title: { fontSize: 22, fontWeight: "bold", marginBottom: 10 },
   input: {
     borderWidth: 1,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#eee",
+    borderColor: "#eef2f7",
   },
   author: { fontWeight: "bold" },
   location: { fontSize: 12, color: "#555" },
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     paddingTop: 34,
     paddingBottom: 18,
     paddingHorizontal: 20,
-    backgroundColor: "#2a9d8f",
+    backgroundColor: "#00c6c6",
   },
   heroRow: { flexDirection: "row", alignItems: "center" },
   heroTitle: { fontSize: 22, fontWeight: "800", color: "#fff" },

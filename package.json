@@ -36,6 +36,7 @@
     "expo-linear-gradient": "~13.0.2",
     "expo-localization": "15.0.3",
     "expo-location": "~17.0.1",
+    "expo-image-picker": "~15.1.0",
     "expo-notifications": "~0.28.19",
     "expo-system-ui": "3.0.7",
     "expo-web-browser": "13.0.3",

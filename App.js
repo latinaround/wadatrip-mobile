@@ -27,6 +27,7 @@ import ReserveBookingScreen from "./src/screens/ReserveBookingScreen";
 import ProviderSignupScreen from "./src/screens/ProviderSignupScreen";
 import CreateListingScreen from "./src/screens/CreateListingScreen";
 import LoginScreen from "./src/screens/LoginScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -230,6 +231,7 @@ export default function App() {
             <Stack.Screen name="Reserve" component={ensureScreen(ReserveBookingScreen, "ReserveBookingScreen")} options={{ headerShown: true, title: 'Reserve Tour', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
             <Stack.Screen name="ProviderSignup" component={ensureScreen(ProviderSignupScreen, "ProviderSignupScreen")} options={{ headerShown: true, title: 'Become a guide / operator', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
             <Stack.Screen name="CreateListing" component={ensureScreen(CreateListingScreen, "CreateListingScreen")} options={{ headerShown: true, title: 'Create tour', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
+            <Stack.Screen name="Profile" component={ensureScreen(ProfileScreen, "ProfileScreen")} options={{ headerShown: true, title: 'Profile', headerBackTitleVisible: false, headerTintColor: '#ffffff', headerStyle: { backgroundColor: '#2a9d8f' }, headerTitleStyle: { color: '#ffffff', fontWeight: '700' } }} />
           </Stack.Navigator>
         ) : (
           <Stack.Navigator screenOptions={{ headerShown: false }}>

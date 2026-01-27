@@ -79,10 +79,10 @@ export default function MyAlertsScreen() {
       <Text style={styles.header}>My Alerts</Text>
 
       <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-        <TouchableOpacity style={[styles.btn, { backgroundColor: '#2a9d8f', opacity: subscribing ? 0.75 : 1 }]} onPress={subscribe} disabled={subscribing}>
+        <TouchableOpacity style={[styles.btn, { backgroundColor: '#00b8b8', opacity: subscribing ? 0.75 : 1 }]} onPress={subscribe} disabled={subscribing}>
           <Text style={styles.btnText}>{subscribing ? 'Subscribing…' : 'Subscribe (MEX-CUN)'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.btn, { backgroundColor: '#1d3557', marginTop: 8, opacity: loading ? 0.75 : 1 }]} onPress={loadAlerts} disabled={loading}>
+        <TouchableOpacity style={[styles.btn, { backgroundColor: '#ff8a3d', marginTop: 8, opacity: loading ? 0.75 : 1 }]} onPress={loadAlerts} disabled={loading}>
           <Text style={styles.btnText}>{loading ? 'Refreshing…' : 'Refresh'}</Text>
         </TouchableOpacity>
       </View>
@@ -95,7 +95,7 @@ export default function MyAlertsScreen() {
         <View style={styles.errorPanel}>
           <Text style={styles.errorText}>{error}</Text>
           {!!errorDetails && (
-            <TouchableOpacity style={[styles.btn, { backgroundColor: '#6c757d', marginTop: 6 }]} onPress={() => setShowDetails((v) => !v)}>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: '#64748b', marginTop: 6 }]} onPress={() => setShowDetails((v) => !v)}>
               <Text style={styles.btnText}>{showDetails ? 'Hide details' : 'Show details'}</Text>
             </TouchableOpacity>
           )}
@@ -104,7 +104,7 @@ export default function MyAlertsScreen() {
               <Text selectable style={styles.detailsText}>{errorDetails}</Text>
             </View>
           )}
-          <TouchableOpacity style={[styles.btn, { backgroundColor: '#1d3557', marginTop: 6 }]} onPress={loadAlerts}>
+          <TouchableOpacity style={[styles.btn, { backgroundColor: '#ff8a3d', marginTop: 6 }]} onPress={loadAlerts}>
             <Text style={styles.btnText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -122,20 +122,21 @@ export default function MyAlertsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  header: { fontSize: 22, fontWeight: '800', color: '#1d3557', paddingHorizontal: 16, marginBottom: 8 },
+  container: { flex: 1, backgroundColor: '#f8fbfc' },
+  header: { fontSize: 22, fontWeight: '800', color: '#0f172a', paddingHorizontal: 16, marginBottom: 8 },
   list: { padding: 12 },
   listEmpty: { flexGrow: 1, justifyContent: 'center', alignItems: 'center' },
   center: { padding: 24 },
   card: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#e9ecef' },
-  title: { fontSize: 16, fontWeight: '800', color: '#1d3557' },
+  title: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
   meta: { color: '#6c757d', marginTop: 4 },
   btn: { paddingHorizontal: 10, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700' },
   errorPanel: { backgroundColor: '#ffe8e8', borderColor: '#f5c2c7', borderWidth: 1, padding: 12, borderRadius: 8, marginHorizontal: 16, marginBottom: 8 },
   errorText: { color: '#b02a37', fontWeight: '600' },
   loadingRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 },
-  loadingText: { marginLeft: 8, color: '#1d3557' },
+  loadingText: { marginLeft: 8, color: '#0f172a' },
   detailsBox: { marginTop: 6, backgroundColor: '#fff', borderWidth: 1, borderColor: '#f1f3f5', borderRadius: 6, padding: 10 },
   detailsText: { color: '#1d3557', fontSize: 12 },
 });
+

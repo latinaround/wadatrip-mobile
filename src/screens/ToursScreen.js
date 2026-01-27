@@ -99,7 +99,7 @@ export default function ToursScreen() {
           <TouchableOpacity style={[styles.button, styles.primary]} onPress={() => data.url && Linking.openURL(data.url)}>
             <Text style={styles.buttonText}>Details</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, { backgroundColor: '#3a86ff', marginLeft: 8 }]} onPress={() => {
+          <TouchableOpacity style={[styles.button, { backgroundColor: '#ff2aa1', marginLeft: 8 }]} onPress={() => {
             const amount = Math.max(1, Math.round(data.price * 100));
             navigation.navigate('Payment', { amount, currency: 'usd', description: `Tour: ${data.title}` });
           }}>
@@ -213,17 +213,17 @@ export default function ToursScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
-  form: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee' },
-  title: { fontSize: 20, fontWeight: '700', color: '#1d3557', marginBottom: 8 },
+  container: { flex: 1, backgroundColor: '#f8fbfc' },
+  form: { padding: 16, backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#eef2f7' },
+  title: { fontSize: 20, fontWeight: '700', color: '#0f172a', marginBottom: 8 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 10 },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   inputHalf: { width: '48%' },
   actionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
   button: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
-  primary: { backgroundColor: '#2a9d8f', marginRight: 8 },
-  secondary: { backgroundColor: '#457b9d', marginLeft: 8 },
+  primary: { backgroundColor: '#00b8b8', marginRight: 8 },
+  secondary: { backgroundColor: '#ff8a3d', marginLeft: 8 },
   buttonText: { color: '#fff', fontWeight: '600' },
   list: { padding: 16 },
   listEmpty: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
@@ -232,20 +232,21 @@ const styles = StyleSheet.create({
   cardVertical: { width: '100%' },
   cardHorizontal: { width: 280, marginRight: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1d3557', flex: 1, paddingRight: 8 },
-  cardPrice: { fontSize: 16, fontWeight: '700', color: '#2a9d8f' },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a', flex: 1, paddingRight: 8 },
+  cardPrice: { fontSize: 16, fontWeight: '700', color: '#ff2aa1' },
   cardSubtitle: { color: '#6c757d', marginTop: 4 },
   cardMeta: { color: '#6c757d', marginTop: 2 },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 },
-  tag: { backgroundColor: '#eef6f5', color: '#2a9d8f', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginRight: 6, marginBottom: 6, fontSize: 12 },
-  magHeader: { fontSize: 18, fontWeight: '800', color: '#1d3557', paddingHorizontal: 16, marginTop: 6 },
+  tag: { backgroundColor: '#f1f5f9', color: '#00b8b8', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginRight: 6, marginBottom: 6, fontSize: 12 },
+  magHeader: { fontSize: 18, fontWeight: '800', color: '#0f172a', paddingHorizontal: 16, marginTop: 6 },
   magList: { paddingHorizontal: 16, paddingVertical: 10 },
   chip: { backgroundColor: '#eef2f7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
-  chipActive: { backgroundColor: '#2a9d8f' },
+  chipActive: { backgroundColor: '#00b8b8' },
   chipText: { color: '#1d3557', fontWeight: '700' },
   chipTextActive: { color: '#fff' },
   helper: { color: '#6c757d', fontSize: 12, marginBottom: 6 },
-  banner: { backgroundColor: '#e6f4ff', borderWidth: 1, borderColor: '#cfe7ff', borderRadius: 10, marginHorizontal: 16, marginTop: 12, paddingVertical: 10, paddingHorizontal: 12 },
-  bannerTitle: { color: '#1d3557', fontWeight: '800', fontSize: 16 },
-  bannerSub: { color: '#3a86ff', marginTop: 2, fontWeight: '600' },
+  banner: { backgroundColor: '#fff3e9', borderWidth: 1, borderColor: '#ffd7bd', borderRadius: 10, marginHorizontal: 16, marginTop: 12, paddingVertical: 10, paddingHorizontal: 12 },
+  bannerTitle: { color: '#0f172a', fontWeight: '800', fontSize: 16 },
+  bannerSub: { color: '#ff8a3d', marginTop: 2, fontWeight: '600' },
 });
+

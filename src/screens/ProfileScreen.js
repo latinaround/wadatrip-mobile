@@ -6,6 +6,7 @@ import { updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useTranslation } from 'react-i18next';
+import * as ImagePicker from 'expo-image-picker';
 import { searchListings } from '../lib/api';
 
 export default function ProfileScreen({ navigation }) {
@@ -74,6 +75,27 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  const onPickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Allow photo access to pick an image.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length) {
+        setPhotoURL(result.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Could not open image picker.');
+    }
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -94,6 +116,10 @@ export default function ProfileScreen({ navigation }) {
       <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Your guide name" />
       <Text style={styles.label}>Photo URL</Text>
       <TextInput style={styles.input} value={photoURL} onChangeText={setPhotoURL} placeholder="https://..." autoCapitalize="none" />
+      <TouchableOpacity style={[styles.button, styles.secondary]} onPress={onPickImage}>
+        <Text style={styles.buttonText}>Choose photo</Text>
+      </TouchableOpacity>
+      <Text style={styles.helperText}>Local image only. Use a URL for cross-device sharing.</Text>
       <Text style={styles.label}>Provider ID</Text>
       <TextInput style={styles.input} value={providerId} onChangeText={setProviderId} placeholder="cmk..." autoCapitalize="none" />
       <TouchableOpacity style={[styles.button, styles.secondary]} onPress={() => loadMyTours(providerId)} disabled={loadingTours}>
@@ -140,7 +166,7 @@ export default function ProfileScreen({ navigation }) {
 
       {/* Quick test payment entry */}
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: '#3a86ff' }]}
+        style={[styles.button, { backgroundColor: '#ff2aa1' }]}
         onPress={() => navigation.navigate('Payment', { amount: 1999, currency: 'usd', description: 'Test tour booking' })}
       >
         <Text style={styles.buttonText}>Test Payment ($19.99)</Text>
@@ -155,8 +181,8 @@ const styles = StyleSheet.create({
   label: { color: '#1d3557', marginTop: 8, marginBottom: 6, fontWeight: '600' },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
   button: { paddingVertical: 12, borderRadius: 8, alignItems: 'center', marginTop: 14 },
-  primary: { backgroundColor: '#2a9d8f' },
-  secondary: { backgroundColor: '#1d3557' },
+  primary: { backgroundColor: '#00b8b8' },
+  secondary: { backgroundColor: '#ff8a3d' },
   buttonText: { color: '#fff', fontWeight: '800' },
   avatarRow: { alignItems: 'center', marginBottom: 8 },
   avatar: { width: 96, height: 96, borderRadius: 48 },
@@ -174,3 +200,4 @@ const styles = StyleSheet.create({
   helperText: { color: '#6c757d', marginTop: 8 },
   errorText: { color: '#b02a37', marginTop: 8 },
 });
+
