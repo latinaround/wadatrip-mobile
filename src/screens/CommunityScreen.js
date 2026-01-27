@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   collection,
   addDoc,
+  getDocs,
   query,
   orderBy,
   onSnapshot,
@@ -25,6 +26,9 @@ export default function CommunityScreen() {
   const [nearMe, setNearMe] = useState(false);
   const [userCity, setUserCity] = useState("");
   const [locating, setLocating] = useState(false);
+  const [replyDrafts, setReplyDrafts] = useState({});
+  const [repliesByPost, setRepliesByPost] = useState({});
+  const [loadingReplies, setLoadingReplies] = useState({});
 
   useEffect(() => {
     const extra = (Constants?.expoConfig?.extra) || {};
@@ -151,6 +155,37 @@ export default function CommunityScreen() {
     return posts.filter((item) => normalizeCity(item?.location?.city) === city);
   })();
 
+  const loadReplies = async (postId) => {
+    if (!postId) return;
+    setLoadingReplies((prev) => ({ ...prev, [postId]: true }));
+    try {
+      const q = query(collection(db, "community_posts", postId, "replies"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      const list = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setRepliesByPost((prev) => ({ ...prev, [postId]: list }));
+    } catch (e) {
+      console.log("Failed to load replies:", e);
+    } finally {
+      setLoadingReplies((prev) => ({ ...prev, [postId]: false }));
+    }
+  };
+
+  const submitReply = async (postId) => {
+    const text = String(replyDrafts[postId] || "").trim();
+    if (!text) return;
+    try {
+      await addDoc(collection(db, "community_posts", postId, "replies"), {
+        author: auth.currentUser?.email || "Anonymous",
+        message: text,
+        createdAt: serverTimestamp(),
+      });
+      setReplyDrafts((prev) => ({ ...prev, [postId]: "" }));
+      await loadReplies(postId);
+    } catch (e) {
+      console.log("Failed to post reply:", e);
+    }
+  };
+
   return (
     <>
       <View style={styles.container}>
@@ -241,6 +276,34 @@ export default function CommunityScreen() {
                 <Text style={styles.date}>
                   {item.createdAt?.toDate?.().toLocaleString() || "Just now"}
                 </Text>
+                <View style={styles.replyRow}>
+                  <TouchableOpacity onPress={() => loadReplies(item.id)} style={styles.replyButton}>
+                    <Text style={styles.replyButtonText}>
+                      {loadingReplies[item.id] ? "Loading..." : "View replies"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {Array.isArray(repliesByPost[item.id]) && repliesByPost[item.id].length > 0 ? (
+                  <View style={styles.replyList}>
+                    {repliesByPost[item.id].map((reply) => (
+                      <View key={reply.id} style={styles.replyItem}>
+                        <Text style={styles.replyAuthor}>{reply.author || "Anonymous"}</Text>
+                        <Text style={styles.replyText}>{reply.message}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+                <View style={styles.replyInputRow}>
+                  <TextInput
+                    style={styles.replyInput}
+                    placeholder="Write a reply..."
+                    value={replyDrafts[item.id] || ""}
+                    onChangeText={(value) => setReplyDrafts((prev) => ({ ...prev, [item.id]: value }))}
+                  />
+                  <TouchableOpacity onPress={() => submitReply(item.id)} style={styles.replySend}>
+                    <Text style={styles.replySendText}>Reply</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
           />
@@ -280,6 +343,17 @@ const styles = StyleSheet.create({
   author: { fontWeight: "bold" },
   location: { fontSize: 12, color: "#555" },
   date: { fontSize: 12, color: "#888" },
+  replyRow: { marginTop: 6 },
+  replyButton: { alignSelf: "flex-start", backgroundColor: "#eef2f7", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  replyButtonText: { color: "#0f172a", fontWeight: "600", fontSize: 12 },
+  replyList: { marginTop: 8, borderTopWidth: 1, borderTopColor: "#eef2f7", paddingTop: 8 },
+  replyItem: { marginBottom: 6 },
+  replyAuthor: { fontWeight: "700", color: "#0f172a", fontSize: 12 },
+  replyText: { color: "#334155", fontSize: 12 },
+  replyInputRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
+  replyInput: { flex: 1, borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: "#fff" },
+  replySend: { marginLeft: 8, backgroundColor: "#00b8b8", paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8 },
+  replySendText: { color: "#fff", fontWeight: "700", fontSize: 12 },
 
   // --- HERO HEADER ---
   heroHeader: {
