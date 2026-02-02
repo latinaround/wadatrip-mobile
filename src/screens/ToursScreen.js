@@ -13,19 +13,20 @@ export default function ToursScreen() {
   const [results, setResults] = useState([]);
   const [date, setDate] = useState('');
   const [anywhere, setAnywhere] = useState(false);
+  const [freeOnly, setFreeOnly] = useState(false);
   const [top, setTop] = useState([]);
 
   useEffect(() => {
     const loadTop = async () => {
       try {
-        const rows = await searchListings({ status: 'published', limit: 10 });
+        const rows = await searchListings({ status: 'published', limit: 10, free_tour: freeOnly });
         setTop(rows);
       } catch {
         setTop([]);
       }
     };
     loadTop();
-  }, []);
+  }, [freeOnly]);
 
   const parseNumber = (v) => {
     const n = Number(String(v).replace(/[^0-9.]/g, ''));
@@ -53,6 +54,7 @@ export default function ToursScreen() {
         max_price: max ?? undefined,
         status: 'published',
         limit: 20,
+        free_tour: freeOnly,
       });
       setResults(rows);
     } catch (e) {
@@ -86,7 +88,9 @@ export default function ToursScreen() {
       <View style={[styles.card, isHorizontal ? styles.cardHorizontal : styles.cardVertical]}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>{data.title}</Text>
-          <Text style={styles.cardPrice}>${data.price}</Text>
+          <Text style={styles.cardPrice}>
+            {data.categories?.includes('free_tour') || data.price <= 0 ? 'Free' : `$${data.price}`}
+          </Text>
         </View>
         <Text style={styles.cardSubtitle}>{data.city}  {data.provider}</Text>
         <Text style={styles.cardMeta}>? {data.rating} ú {data.reviews} rese¤as {data.durationHours ? `ú ${data.durationHours}h` : ''}</Text>
@@ -100,10 +104,15 @@ export default function ToursScreen() {
             <Text style={styles.buttonText}>Details</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.button, { backgroundColor: '#ff2aa1', marginLeft: 8 }]} onPress={() => {
+            if (data.categories?.includes('free_tour') || data.price <= 0) {
+              Alert.alert('Free tour', 'Reserve this tour on the web page.');
+              if (data.url) Linking.openURL(data.url);
+              return;
+            }
             const amount = Math.max(1, Math.round(data.price * 100));
             navigation.navigate('Payment', { amount, currency: 'usd', description: `Tour: ${data.title}` });
           }}>
-            <Text style={styles.buttonText}>Book</Text>
+            <Text style={styles.buttonText}>{data.categories?.includes('free_tour') || data.price <= 0 ? 'Reserve' : 'Book'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -141,6 +150,12 @@ export default function ToursScreen() {
             }}
           >
             <Text style={[styles.chipText, anywhere && styles.chipTextActive]}>Anywhere</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.chip, freeOnly && styles.chipActive, { marginLeft: 10 }]}
+            onPress={() => setFreeOnly((prev) => !prev)}
+          >
+            <Text style={[styles.chipText, freeOnly && styles.chipTextActive]}>Free tours</Text>
           </TouchableOpacity>
           <View style={{ flex: 1 }} />
         </View>

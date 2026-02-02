@@ -405,6 +405,15 @@ export async function getDiagnostics(): Promise<any> {
   return doFetch<any>(`/health`, { method: 'GET' });
 }
 
+export async function listBookings(params: { user_email?: string; user_id?: string; status?: string } = {}): Promise<any[]> {
+  const qs = new URLSearchParams();
+  if (params.user_email) qs.set('user_email', String(params.user_email));
+  if (params.user_id) qs.set('user_id', String(params.user_id));
+  if (params.status) qs.set('status', String(params.status));
+  const res = await doFetch<{ items: any[] }>(`/bookings?${qs.toString()}`, { method: 'GET' });
+  return res.items || [];
+}
+
 export async function searchListings(params: {
   city?: string;
   country?: string;
@@ -413,6 +422,7 @@ export async function searchListings(params: {
   status?: string;
   min_price?: number | string;
   max_price?: number | string;
+  free_tour?: boolean;
 }): Promise<any[]> {
   const qs = new URLSearchParams();
   if (params?.city) qs.set('city', params.city);
@@ -422,6 +432,7 @@ export async function searchListings(params: {
   if (params?.status) qs.set('status', params.status);
   if (params?.min_price != null) qs.set('min_price', String(params.min_price));
   if (params?.max_price != null) qs.set('max_price', String(params.max_price));
+  if (params?.free_tour) qs.set('free_tour', 'true');
   const res = await doFetch<{ items: any[] }>(`/listings/search?${qs.toString()}`, { method: 'GET' });
   return res.items || [];
 }
@@ -485,6 +496,6 @@ export async function deleteListing(id: string, accessCode?: string): Promise<an
   return doFetch<any>(`/listings/${encodeURIComponent(id)}`, { method: 'DELETE', headers });
 }
 
-export default { generateItinerary, predictPricing, listAlerts, subscribeAlert, getAlerts, getItineraries, getCommunityPosts, getDiagnostics, searchListings, createProvider, getProvider, createListing, getListing, updateListing, deleteListing, createBooking, startCheckout };
+export default { generateItinerary, predictPricing, listAlerts, subscribeAlert, getAlerts, getItineraries, getCommunityPosts, getDiagnostics, listBookings, searchListings, createProvider, getProvider, createListing, getListing, updateListing, deleteListing, createBooking, startCheckout };
 
 
