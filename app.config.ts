@@ -12,7 +12,7 @@ export default ({ config }: { config: Record<string, any> }) => ({
   ...config,
   name: "WadaTrip Mobile",
   slug: "wadatrip-mobile",
-  version: "1.0.0",
+  version: "1.0.2",
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
@@ -37,6 +37,7 @@ export default ({ config }: { config: Record<string, any> }) => ({
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
+    versionCode: 2,
     package: "com.kiaradiaz0249.wadatripweb",
     permissions: [
       "INTERNET",
