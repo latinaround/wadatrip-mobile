@@ -11,6 +11,50 @@ import { brand } from '../theme/brand';
 
 const CATEGORIES = ['tour', 'activity', 'transfer', 'custom'];
 
+const COUNTRY_OPTIONS = [
+  { code: 'US', name: 'United States' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'PE', name: 'Peru' },
+  { code: 'CO', name: 'Colombia' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'FR', name: 'France' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'AR', name: 'Argentina' },
+  { code: 'CL', name: 'Chile' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'CN', name: 'China' },
+];
+
+const CITY_OPTIONS_BY_COUNTRY = {
+  US: ['New York', 'Los Angeles', 'Miami', 'San Francisco', 'Palo Alto'],
+  MX: ['Mexico City', 'Cancun', 'Tulum', 'Oaxaca', 'Guadalajara'],
+  PE: ['Lima', 'Cusco', 'Arequipa', 'Puno'],
+  CO: ['Bogota', 'Medellin', 'Cartagena'],
+  ES: ['Madrid', 'Barcelona', 'Seville', 'Valencia'],
+  FR: ['Paris', 'Nice', 'Lyon'],
+  IT: ['Rome', 'Milan', 'Florence'],
+  BR: ['Rio de Janeiro', 'Sao Paulo', 'Salvador'],
+  AR: ['Buenos Aires', 'Mendoza'],
+  CL: ['Santiago', 'Valparaiso'],
+  JP: ['Tokyo', 'Kyoto', 'Osaka'],
+  CN: ['Beijing', 'Shanghai'],
+};
+
+const ALL_CITY_OPTIONS = Array.from(new Set(Object.values(CITY_OPTIONS_BY_COUNTRY).flat())).sort();
+
+const normalizeCountryCode = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const upper = raw.toUpperCase();
+  const direct = COUNTRY_OPTIONS.find((item) => item.code === upper);
+  if (direct) return direct.code;
+  const byName = COUNTRY_OPTIONS.find((item) => item.name.toLowerCase() === raw.toLowerCase());
+  if (byName) return byName.code;
+  const byComposite = COUNTRY_OPTIONS.find((item) => `${item.name} (${item.code})`.toLowerCase() === raw.toLowerCase());
+  return byComposite ? byComposite.code : upper.slice(0, 2);
+};
+
 const slugify = (value) =>
   String(value || '')
     .trim()
@@ -41,7 +85,9 @@ export default function CreateListingScreen({ route, navigation }) {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('tour');
   const [city, setCity] = useState(String(initialProvider?.base_city || ''));
+  const [cityQuery, setCityQuery] = useState(String(initialProvider?.base_city || ''));
   const [country, setCountry] = useState(String(initialProvider?.country_code || ''));
+  const [countryQuery, setCountryQuery] = useState(String(initialProvider?.country_code || ''));
   const [duration, setDuration] = useState('');
   const [priceFrom, setPriceFrom] = useState('');
   const [currency, setCurrency] = useState('USD');
@@ -58,6 +104,24 @@ export default function CreateListingScreen({ route, navigation }) {
   const formReady = Boolean(title.trim() && city.trim() && country.trim() && (isFreeTour || priceFrom.trim()));
   const parsedPrice = Number(priceFrom || 0);
   const hostPayout = !isFreeTour && Number.isFinite(parsedPrice) && parsedPrice > 0 ? (parsedPrice * 0.85).toFixed(2) : '';
+  const normalizedCountryCode = normalizeCountryCode(country || countryQuery);
+
+  const countrySuggestions = useMemo(() => {
+    const q = String(countryQuery || country || '').trim().toLowerCase();
+    if (!q) return [];
+    return COUNTRY_OPTIONS.filter((item) => `${item.name} ${item.code}`.toLowerCase().includes(q)).slice(0, 6);
+  }, [countryQuery, country]);
+
+  const citySuggestions = useMemo(() => {
+    const q = String(cityQuery || city || '').trim().toLowerCase();
+    if (!q) return [];
+    const pool = (normalizedCountryCode && CITY_OPTIONS_BY_COUNTRY[normalizedCountryCode]) ? CITY_OPTIONS_BY_COUNTRY[normalizedCountryCode] : ALL_CITY_OPTIONS;
+    return pool.filter((item) => {
+      const lower = item.toLowerCase();
+      const current = String(city || '').trim().toLowerCase();
+      return lower.includes(q) && lower != current;
+    }).slice(0, 6);
+  }, [cityQuery, city, normalizedCountryCode]);
 
   const statusMeta = useMemo(() => {
     if (providerLoading) {
@@ -93,8 +157,12 @@ export default function CreateListingScreen({ route, navigation }) {
     setTitle('');
     setDescription('');
     setCategory('tour');
-    setCity(String(provider?.base_city || initialProvider?.base_city || ''));
-    setCountry(String(provider?.country_code || initialProvider?.country_code || ''));
+    const nextCity = String(provider?.base_city || initialProvider?.base_city || '');
+    const nextCountry = String(provider?.country_code || initialProvider?.country_code || '');
+    setCity(nextCity);
+    setCityQuery(nextCity);
+    setCountry(nextCountry);
+    setCountryQuery(nextCountry);
     setDuration('');
     setPriceFrom('');
     setCurrency('USD');
@@ -112,8 +180,16 @@ export default function CreateListingScreen({ route, navigation }) {
       const p = await getProvider(String(id));
       setProvider(p);
       setProviderStatus(normalizeProviderStatus(p));
-      if (!city) setCity(String(p?.base_city || ''));
-      if (!country) setCountry(String(p?.country_code || ''));
+      if (!city) {
+        const nextCity = String(p?.base_city || '');
+        setCity(nextCity);
+        setCityQuery(nextCity);
+      }
+      if (!country) {
+        const nextCountry = String(p?.country_code || '');
+        setCountry(nextCountry);
+        setCountryQuery(nextCountry);
+      }
     } catch {
       setProviderError('Could not load tour guide status');
     }
@@ -126,8 +202,16 @@ export default function CreateListingScreen({ route, navigation }) {
       const p = await getCurrentProvider(user?.email || '');
       setProvider(p || null);
       setProviderStatus(normalizeProviderStatus(p));
-      if (!city) setCity(String(p?.base_city || ''));
-      if (!country) setCountry(String(p?.country_code || ''));
+      if (!city) {
+        const nextCity = String(p?.base_city || '');
+        setCity(nextCity);
+        setCityQuery(nextCity);
+      }
+      if (!country) {
+        const nextCountry = String(p?.country_code || '');
+        setCountry(nextCountry);
+        setCountryQuery(nextCountry);
+      }
     } catch (e) {
       if (e?.status === 404 || /Provider account not found/i.test(String(e?.message || ''))) {
         setProvider(null);
@@ -169,8 +253,12 @@ export default function CreateListingScreen({ route, navigation }) {
       setTitle(String(res.title || ''));
       setDescription(String(res.description || ''));
       setCategory(String(res.category || 'tour'));
-      setCity(String(res.city || provider?.base_city || ''));
-      setCountry(String(res.country_code || provider?.country_code || ''));
+      const nextCity = String(res.city || provider?.base_city || '');
+      const nextCountry = String(res.country_code || provider?.country_code || '');
+      setCity(nextCity);
+      setCityQuery(nextCity);
+      setCountry(nextCountry);
+      setCountryQuery(nextCountry);
       setDuration(res.duration_minutes ? String(res.duration_minutes) : '');
       setPriceFrom(res.price_from ? String(res.price_from) : '');
       setCurrency(String(res.currency || 'USD'));
@@ -197,7 +285,7 @@ export default function CreateListingScreen({ route, navigation }) {
       description: description.trim() ? description.trim() : undefined,
       category: category.trim(),
       city: city.trim(),
-      country_code: country.trim().toUpperCase(),
+      country_code: normalizedCountryCode,
       duration_minutes: duration ? Number(duration) : undefined,
       price_from: isFreeTour ? null : (priceFrom ? Number(priceFrom) : undefined),
       currency: isFreeTour ? null : (currency.trim() || 'USD'),
@@ -226,7 +314,7 @@ export default function CreateListingScreen({ route, navigation }) {
       Alert.alert(t('error', 'Error'), 'Could not validate provider');
       return false;
     }
-    if (!title.trim() || !category.trim() || !city.trim() || !country.trim() || (!isFreeTour && !priceFrom.trim())) {
+    if (!title.trim() || !category.trim() || !city.trim() || !normalizedCountryCode || (!isFreeTour && !priceFrom.trim())) {
       Alert.alert(t('error', 'Error'), t('listing.missing_fields', 'Complete the required fields'));
       return false;
     }
@@ -430,11 +518,48 @@ export default function CreateListingScreen({ route, navigation }) {
               ))}
             </View>
 
-            <Text style={styles.label}>{t('listing.city', 'City')}</Text>
-            <BrandInput style={styles.input} value={city} onChangeText={setCity} placeholder="Cancun" />
-
             <Text style={styles.label}>{t('listing.country', 'Country (ISO-2)')}</Text>
-            <BrandInput style={styles.input} value={country} onChangeText={setCountry} placeholder="US" autoCapitalize="characters" maxLength={2} />
+            <BrandInput
+              style={styles.input}
+              value={countryQuery || country}
+              onChangeText={(text) => {
+                setCountryQuery(text);
+                const normalized = normalizeCountryCode(text);
+                if (normalized) setCountry(normalized);
+              }}
+              placeholder="Type country or code"
+              autoCapitalize="words"
+            />
+            {countrySuggestions.length ? (
+              <View style={styles.suggestionsBox}>
+                {countrySuggestions.map((item) => (
+                  <TouchableOpacity key={`country-${item.code}`} style={styles.suggestionItem} onPress={() => { setCountry(item.code); setCountryQuery(`${item.name} (${item.code})`); }}>
+                    <Text style={styles.suggestionText}>{item.name} ({item.code})</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+            <Text style={styles.helper}>Selected country code: {normalizedCountryCode || '-'}</Text>
+
+            <Text style={styles.label}>{t('listing.city', 'City')}</Text>
+            <BrandInput
+              style={styles.input}
+              value={city}
+              onChangeText={(text) => {
+                setCity(text);
+                setCityQuery(text);
+              }}
+              placeholder={normalizedCountryCode === 'PE' ? 'Lima' : 'Type city'}
+            />
+            {citySuggestions.length ? (
+              <View style={styles.suggestionsBox}>
+                {citySuggestions.map((item) => (
+                  <TouchableOpacity key={`city-${item}`} style={styles.suggestionItem} onPress={() => { setCity(item); setCityQuery(item); }}>
+                    <Text style={styles.suggestionText}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
           </BrandCard>
 
           <BrandCard style={styles.sectionCard}>
@@ -609,6 +734,9 @@ const styles = StyleSheet.create({
   categoryChipActive: { backgroundColor: '#ccfbf1', borderColor: '#5eead4' },
   categoryChipText: { color: brand.colors.deep, fontFamily: brand.typography.heading },
   categoryChipTextActive: { color: '#0f766e' },
+  suggestionsBox: { marginTop: 8, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 16, overflow: 'hidden', backgroundColor: '#fff' },
+  suggestionItem: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  suggestionText: { color: brand.colors.deep, fontFamily: brand.typography.heading },
   row: { flexDirection: 'row', gap: 12 },
   col: { flex: 1 },
   previewRail: { gap: 10, marginTop: 14 },
