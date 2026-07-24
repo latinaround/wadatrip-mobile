@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, S
 import { useTranslation } from 'react-i18next';
 import { createListing, getProvider, getListing, updateListing, deleteListing, getCurrentProvider, normalizeProviderStatus } from '../lib/api';
 import { auth } from '../services/firebase';
+import { getCurrentAppUser } from '../services/appSession';
 import BrandHeader from '../components/brand/BrandHeader';
 import BrandCard from '../components/brand/BrandCard';
 import BrandButton from '../components/brand/BrandButton';
@@ -74,7 +75,7 @@ const buildPublicTourUrl = (listing) => {
 export default function CreateListingScreen({ route, navigation }) {
   const { t } = useTranslation();
   const initialProvider = route?.params?.provider || null;
-  const user = auth.currentUser;
+  const user = auth.currentUser || getCurrentAppUser();
   const [provider, setProvider] = useState(initialProvider || null);
   const [providerStatus, setProviderStatus] = useState(String(initialProvider?.status || ''));
   const [providerLoading, setProviderLoading] = useState(false);

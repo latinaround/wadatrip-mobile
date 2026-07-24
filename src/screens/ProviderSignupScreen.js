@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { useTranslation } from 'react-i18next';
 import { createProvider, normalizeProviderStatus } from '../lib/api';
 import { auth } from '../services/firebase';
+import { getCurrentAppUser } from '../services/appSession';
 import BrandHeader from '../components/brand/BrandHeader';
 import BrandCard from '../components/brand/BrandCard';
 import BrandButton from '../components/brand/BrandButton';
@@ -52,7 +53,7 @@ const COUNTRY_OPTIONS = [
 
 export default function ProviderSignupScreen({ navigation, route }) {
   const { t } = useTranslation();
-  const user = auth.currentUser;
+  const user = auth.currentUser || getCurrentAppUser();
   const initialProvider = route?.params?.provider || null;
   const [type, setType] = useState(initialProvider?.type === 'operator' ? 'operator' : 'guide');
   const [name, setName] = useState(String(initialProvider?.name || ''));

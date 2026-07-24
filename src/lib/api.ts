@@ -46,18 +46,26 @@ function sanitizeBaseUrl(input: string): string {
   return base.replace(/\/+$/, '');
 }
 
+function isLoopbackBaseUrl(input: string): boolean {
+  return /^https?:\/\/(localhost|127\.0\.0\.1|10\.0\.2\.2|10\.0\.3\.2)(?::\d+)?(?:\/|$)/i.test(input.trim());
+}
+
 function resolveApiBases(): string[] {
   const extra = (Constants as any)?.expoConfig?.extra || {};
   const env = (typeof process !== 'undefined' ? (process as any).env : undefined) as Record<string, any> | undefined;
   const bases: string[] = [];
   const fallbackQueue: string[] = [];
   let hasPrimary = false;
+  const allowLoopback = typeof __DEV__ !== 'undefined' && __DEV__;
 
   const pushUnique = (value: string | undefined | null, target: 'primary' | 'fallback' | 'default') => {
     if (typeof value !== 'string') return;
     const trimmed = value.trim();
     if (!trimmed) return;
     const sanitized = sanitizeBaseUrl(trimmed);
+    if (!allowLoopback && isLoopbackBaseUrl(sanitized)) {
+      return;
+    }
     if (target === 'fallback') {
       if (!fallbackQueue.includes(sanitized) && !bases.includes(sanitized)) {
         fallbackQueue.push(sanitized);
@@ -72,17 +80,12 @@ function resolveApiBases(): string[] {
     }
   };
 
-  pushUnique(env?.EXPO_PUBLIC_API_BASE_URL as string | undefined, 'primary');
   pushUnique(extra.API_BASE_URL as string | undefined, 'primary');
+  pushUnique(env?.EXPO_PUBLIC_API_BASE_URL as string | undefined, 'primary');
   pushUnique((global as any).API_BASE_URL as string | undefined, 'primary');
 
   if (!hasPrimary) {
-    if (Platform.OS === 'android') {
-      pushUnique('http://10.0.2.2:3000', 'default');
-      pushUnique('http://localhost:3000', 'default');
-    } else {
-      pushUnique('http://localhost:3000', 'default');
-    }
+    pushUnique('https://wadatrip.onrender.com', 'default');
   }
 
   pushUnique(env?.EXPO_PUBLIC_API_FALLBACK_URL as string | undefined, 'fallback');
@@ -92,6 +95,12 @@ function resolveApiBases(): string[] {
     if (!bases.includes(fallback)) {
       bases.push(fallback);
     }
+  }
+
+  const mode = String(extra.API_MODE || env?.EXPO_PUBLIC_API_MODE || '').toLowerCase();
+  const liveFallback = sanitizeBaseUrl('https://wadatrip.onrender.com');
+  if (mode !== 'mock' && !bases.includes(liveFallback)) {
+    bases.push(liveFallback);
   }
 
   if (!__loggedBaseOnce) {
@@ -124,6 +133,33 @@ function getApiMode(): 'mock' | 'live' {
     if (String(mode).toLowerCase() === 'mock') return 'mock';
   } catch {}
   return 'live';
+}
+
+export type RequestAuthCodeInput = {
+  email: string;
+  role?: string;
+  name?: string;
+};
+
+export type VerifyAuthCodeInput = {
+  email: string;
+  code: string;
+  role?: string;
+  name?: string;
+};
+
+export async function requestAuthCode(body: RequestAuthCodeInput): Promise<any> {
+  return doFetch<any>(`/auth/request-code`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function verifyAuthCode(body: VerifyAuthCodeInput): Promise<any> {
+  return doFetch<any>(`/auth/verify-code`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 async function doFetch<T>(path: string, init: RequestInit): Promise<T> {
@@ -222,6 +258,87 @@ function ensureMockStore() {
   return __mockStore;
 }
 
+function toAlertRouteLabel(value: any): string {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  const origin = String(value.origin || value.from || '').trim();
+  const destination = String(value.destination || value.to || '').trim();
+  return [origin, destination].filter(Boolean).join('-');
+}
+
+function normalizeAlertItem(item: any, idx = 0): any {
+  const rule = Array.isArray(item?.rules) ? item.rules.find(Boolean) || item.rules[0] : undefined;
+  const route =
+    toAlertRouteLabel(item?.route) ||
+    toAlertRouteLabel(item?.route_info) ||
+    toAlertRouteLabel(rule?.route) ||
+    toAlertRouteLabel(item?.flight_route) ||
+    [item?.origin, item?.destination].filter(Boolean).join('-');
+  const currentPrice = item?.current_price ?? item?.price ?? item?.latest_price ?? item?.pricing?.current_price;
+  const predictedLow = item?.predicted_low ?? item?.target_price ?? item?.pricing?.predicted_low ?? rule?.threshold;
+  const action =
+    item?.action ||
+    item?.recommended_action ||
+    item?.adred_action ||
+    rule?.action ||
+    (rule?.type === 'price_drop' ? 'watch' : rule?.type);
+  const date =
+    item?.date ||
+    item?.travel_date ||
+    item?.start_date ||
+    item?.departure_date ||
+    rule?.date ||
+    item?.dates?.depart;
+
+  return {
+    ...item,
+    id: String(item?.id || item?.alert_id || rule?.id || `${route || 'alert'}-${idx}`),
+    route: route || 'Route',
+    current_price: currentPrice != null ? Number(currentPrice) : null,
+    predicted_low: predictedLow != null ? Number(predictedLow) : null,
+    action: action ? String(action).toLowerCase() : '',
+    status: String(item?.status || item?.state || item?.subscription_status || 'active').toLowerCase(),
+    currency: String(item?.currency || item?.pricing?.currency || 'USD').toUpperCase(),
+    threshold: rule?.threshold ?? item?.threshold ?? item?.budget_max ?? item?.target_price ?? null,
+    date: date ? String(date) : '',
+    channel: String(item?.channel || 'in_app'),
+    rule_type: String(rule?.type || ''),
+    raw: item,
+  };
+}
+
+function alertDedupeKey(item: any): string {
+  const route = String(item?.route || '').trim().toUpperCase();
+  const date = String(item?.date || '').slice(0, 10);
+  const action = String(item?.action || item?.rule_type || '').trim().toLowerCase();
+  const threshold = item?.threshold != null ? String(Number(item.threshold)) : '';
+  return [route, date, action, threshold].join('|');
+}
+
+function dedupeAlertItems(items: any[]): any[] {
+  const seen = new Set<string>();
+  const deduped: any[] = [];
+  for (const item of items) {
+    const key = alertDedupeKey(item);
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    deduped.push(item);
+  }
+  return deduped;
+}
+
+function extractAlertItems(input: any): any[] {
+  if (Array.isArray(input)) {
+    return dedupeAlertItems(input.map((item, idx) => normalizeAlertItem(item, idx)));
+  }
+  const items = Array.isArray(input?.items)
+    ? input.items
+    : Array.isArray(input?.alerts)
+      ? input.alerts
+      : [];
+  return dedupeAlertItems(items.map((item, idx) => normalizeAlertItem(item, idx)));
+}
+
 export async function generateItinerary(request: GenerateItineraryRequest): Promise<GenerateItineraryResponse> {
   return doFetch<GenerateItineraryResponse>('/itineraries/generate', {
     method: 'POST',
@@ -230,6 +347,34 @@ export async function generateItinerary(request: GenerateItineraryRequest): Prom
 }
 
 export type PredictInput = { origin: string; destination: string; start_date?: string };
+export type FlightRecommendationInput = {
+  origin: string;
+  destination: string;
+  departureDate?: string;
+  returnDate?: string;
+  budget?: number;
+  budgetMin?: number;
+  budgetMax?: number;
+  maxWaitHours?: number;
+  flexDays?: number;
+  adults?: number;
+};
+
+export type FlightRecommendation = {
+  current_price: number;
+  predicted_low: number;
+  predicted_high: number;
+  fair_price: number;
+  recommendation: string;
+  confidence: number;
+  best_buy_window_hours: number;
+  within_budget: boolean;
+  reason: string;
+  history_points: number;
+  price_change_48h: number;
+  cheapest_offer?: any | null;
+  offers?: any[];
+};
 
 export async function predictPricing(request: PredictInput): Promise<PricingPrediction[]> {
   if (getApiMode() === 'mock') {
@@ -260,23 +405,101 @@ export async function predictPricing(request: PredictInput): Promise<PricingPred
   return res.predictions || [];
 }
 
+export async function getFlightRecommendation(input: FlightRecommendationInput): Promise<FlightRecommendation> {
+  const payload = {
+    origin: input.origin,
+    destination: input.destination,
+    departureDate: input.departureDate,
+    returnDate: input.returnDate,
+    budget: input.budget,
+    budgetMin: input.budgetMin,
+    budgetMax: input.budgetMax,
+    maxWaitHours: input.maxWaitHours ?? 168,
+    flexDays: input.flexDays ?? 0,
+    adults: input.adults ?? 1,
+  };
+
+  try {
+    const res = await doFetch<{ recommendation: FlightRecommendation }>(`/flights/recommendation`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.recommendation;
+  } catch (e: any) {
+    if (e?.status && ![400, 404, 405, 500, 501].includes(Number(e.status))) {
+      throw e;
+    }
+
+    try {
+      const predictions = await predictPricing({
+        origin: input.origin,
+        destination: input.destination,
+        start_date: input.departureDate,
+      });
+      const first = predictions?.[0];
+      if (first) {
+        const currentPrice = Number(first.current_price || first.predicted_low || 0);
+        const predictedLow = Number(first.predicted_low || currentPrice || 0);
+        return {
+          current_price: currentPrice,
+          predicted_low: predictedLow,
+          predicted_high: Math.max(currentPrice, predictedLow),
+          fair_price: currentPrice || predictedLow,
+          recommendation: String(first.action || 'watch'),
+          confidence: Number(first.confidence || 0.55),
+          best_buy_window_hours: 24,
+          within_budget: false,
+          reason: 'Fallback prediction from the pricing endpoint.',
+          history_points: 0,
+          price_change_48h: Number(predictedLow - currentPrice),
+          cheapest_offer: null,
+          offers: [],
+        };
+      }
+    } catch {}
+
+    const { getFlightAdvice } = await import('../services/mlFlightPredictor');
+    const advice = await getFlightAdvice({
+      origin: input.origin,
+      destination: input.destination,
+      departureDate: input.departureDate,
+      budget: input.budgetMax || input.budget || input.budgetMin,
+    });
+    return {
+      current_price: Number(advice.predictedPrice || 0),
+      predicted_low: Number(advice.lowerBound || advice.predictedPrice || 0),
+      predicted_high: Number(advice.upperBound || advice.predictedPrice || 0),
+      fair_price: Number(advice.predictedPrice || 0),
+      recommendation: String(advice.recommendation || 'watch'),
+      confidence: Number(advice.confidence || 0.5),
+      best_buy_window_hours: Number(advice.nextCheckHours || 24),
+      within_budget: false,
+      reason: String(advice.reason || 'Fallback prediction from the local heuristic model.'),
+      history_points: 0,
+      price_change_48h: 0,
+      cheapest_offer: null,
+      offers: [],
+    };
+  }
+}
+
 export async function listAlerts(): Promise<any[]> {
   if (getApiMode() === 'mock') {
     const store = ensureMockStore();
     const seed = [
-      { id: 'a1', route: { origin: 'MAD', destination: 'CDG' }, price: 129, currency: 'EUR', status: 'active' },
-      { id: 'a2', route: { origin: 'BCN', destination: 'LIS' }, price: 59, currency: 'EUR', status: 'paused' },
-      { id: 'a3', route: { origin: 'MEX', destination: 'JFK' }, price: 210, currency: 'USD', status: 'active' },
+      { id: 'a1', route: { origin: 'MAD', destination: 'CDG' }, current_price: 129, predicted_low: 102, currency: 'EUR', status: 'active', action: 'wait' },
+      { id: 'a2', route: { origin: 'BCN', destination: 'LIS' }, current_price: 59, predicted_low: 54, currency: 'EUR', status: 'paused', action: 'buy' },
+      { id: 'a3', route: { origin: 'MEX', destination: 'JFK' }, current_price: 210, predicted_low: 187, currency: 'USD', status: 'active', action: 'watch' },
     ];
-    return [...seed, ...(store.alerts || [])];
+    return extractAlertItems([...seed, ...(store.alerts || [])]);
   }
   try {
-    const res = await doFetch<{ items: any[] }>(`/alerts`, { method: 'GET' });
-    return res.items || [];
+    const res = await doFetch<any>(`/alerts`, { method: 'GET' });
+    return extractAlertItems(res);
   } catch (e: any) {
     if (e?.status === 404) {
-      const res = await doFetch<{ items: any[] }>(`/alerts/list`, { method: 'GET' });
-      return res.items || [];
+      const res = await doFetch<any>(`/alerts/list`, { method: 'GET' });
+      return extractAlertItems(res);
     }
     throw e;
   }
@@ -293,7 +516,7 @@ export async function subscribeAlert(body: any): Promise<any> {
     };
     const store = ensureMockStore();
     store.alerts!.push(created);
-    return created;
+    return normalizeAlertItem(created);
   }
   // Normalize client payload into AlertsSubscribeRequest expected by backend
   const input = body || {};
@@ -314,29 +537,12 @@ export async function subscribeAlert(body: any): Promise<any> {
     channel: input.channel || 'in_app',
     rules: [rule],
   };
-  return doFetch<any>(`/alerts/subscribe`, { method: 'POST', body: JSON.stringify(payload) });
+  const res = await doFetch<any>(`/alerts/subscribe`, { method: 'POST', body: JSON.stringify(payload) });
+  return normalizeAlertItem({ ...input, ...res, route: input.route || routeStr, budget_max: input.budget_max, budget_min: input.budget_min, dates: input.dates });
 }
 
 export async function getAlerts(): Promise<any[]> {
-  // In mock mode, return current mock store + seeds
-  if (getApiMode() === 'mock') {
-    const store = ensureMockStore();
-    const seed = [
-      { id: 'a1', route: { origin: 'MAD', destination: 'CDG' }, price: 129, currency: 'EUR', status: 'active' },
-      { id: 'a2', route: { origin: 'BCN', destination: 'LIS' }, price: 59, currency: 'EUR', status: 'paused' },
-    ];
-    return [...seed, ...(store.alerts || [])];
-  }
-  try {
-    const res = await doFetch<{ items: any[] }>(`/alerts`, { method: 'GET' });
-    return res.items || [];
-  } catch (e: any) {
-    if (e?.status === 404) {
-      const res = await doFetch<{ items: any[] }>(`/alerts/list`, { method: 'GET' });
-      return res.items || [];
-    }
-    throw e;
-  }
+  return listAlerts();
 }
 
 export async function getItineraries(): Promise<any[]> {
@@ -405,19 +611,75 @@ export async function getDiagnostics(): Promise<any> {
   return doFetch<any>(`/health`, { method: 'GET' });
 }
 
-export async function listBookings(params: { user_email?: string; user_id?: string; status?: string } = {}): Promise<any[]> {
+export async function listBookings(params: { user_email?: string; user_id?: string; provider_id?: string; listing_id?: string; status?: string; limit?: number } = {}): Promise<any[]> {
   const qs = new URLSearchParams();
   if (params.user_email) qs.set('user_email', String(params.user_email));
   if (params.user_id) qs.set('user_id', String(params.user_id));
+  if (params.provider_id) qs.set('provider_id', String(params.provider_id));
+  if (params.listing_id) qs.set('listing_id', String(params.listing_id));
   if (params.status) qs.set('status', String(params.status));
+  if (params.limit) qs.set('limit', String(params.limit));
   const res = await doFetch<{ items: any[] }>(`/bookings?${qs.toString()}`, { method: 'GET' });
   return res.items || [];
+}
+
+export async function getBooking(id: string): Promise<any> {
+  return doFetch<any>(`/bookings/${encodeURIComponent(id)}`, { method: 'GET' });
+}
+
+export type WadaAgentChatInput = {
+  message: string;
+  context?: {
+    origin?: string;
+    destination?: string;
+    dates?: string;
+    start_date?: string;
+    budget?: string;
+    interests?: string[];
+    user_email?: string;
+    user_id?: string;
+  };
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+};
+
+export type WadaAgentChatResponse = {
+  reply: string;
+  recommendations?: Array<{
+    type?: string;
+    title?: string;
+    price?: number;
+    currency?: string;
+    recommended_action?: string;
+    adred_action?: string;
+  }>;
+  table?: { columns?: string[]; rows?: string[][] };
+  meta?: { confidence?: number; notes?: string };
+};
+
+export async function chatWadaAgent(body: WadaAgentChatInput): Promise<WadaAgentChatResponse> {
+  try {
+    return await doFetch<WadaAgentChatResponse>(`/wadagent/chat`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  } catch (e: any) {
+    if (e?.status && ![400, 404, 405, 500, 501, 502].includes(Number(e.status))) {
+      throw e;
+    }
+    return {
+      reply: 'I can help with tours, flight timing, and your bookings. The live assistant is not available right now, so try again in a moment.',
+      recommendations: [],
+      table: { columns: [], rows: [] },
+      meta: { confidence: 0.2, notes: 'agent_fallback' },
+    };
+  }
 }
 
 export async function searchListings(params: {
   city?: string;
   country?: string;
   q?: string;
+  provider_id?: string;
   limit?: number;
   status?: string;
   min_price?: number | string;
@@ -428,6 +690,7 @@ export async function searchListings(params: {
   if (params?.city) qs.set('city', params.city);
   if (params?.country) qs.set('country', params.country);
   if (params?.q) qs.set('q', params.q);
+  if (params?.provider_id) qs.set('provider_id', params.provider_id);
   if (params?.limit) qs.set('limit', String(params.limit));
   if (params?.status) qs.set('status', params.status);
   if (params?.min_price != null) qs.set('min_price', String(params.min_price));
@@ -435,6 +698,74 @@ export async function searchListings(params: {
   if (params?.free_tour) qs.set('free_tour', 'true');
   const res = await doFetch<{ items: any[] }>(`/listings/search?${qs.toString()}`, { method: 'GET' });
   return res.items || [];
+}
+
+export type DestinationCover = {
+  id?: string;
+  slug?: string;
+  city?: string;
+  country_code?: string | null;
+  title?: string | null;
+  image_url?: string | null;
+  eyebrow?: string | null;
+  active?: boolean;
+};
+
+export async function listDestinationCovers(params: {
+  city?: string;
+  country_code?: string;
+  slug?: string;
+  active?: boolean;
+  limit?: number;
+} = {}): Promise<DestinationCover[]> {
+  const qs = new URLSearchParams();
+  if (params.city) qs.set('city', String(params.city));
+  if (params.country_code) qs.set('country_code', String(params.country_code));
+  if (params.slug) qs.set('slug', String(params.slug));
+  if (params.active != null) qs.set('active', params.active ? 'true' : 'false');
+  if (params.limit) qs.set('limit', String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  const res = await doFetch<{ items: DestinationCover[] }>(`/destination-covers${suffix}`, { method: 'GET' });
+  return res.items || [];
+}
+
+export async function resolveDestinationCover(params: {
+  city?: string;
+  country_code?: string;
+  slug?: string;
+}): Promise<DestinationCover | null> {
+  const qs = new URLSearchParams();
+  if (params.city) qs.set('city', String(params.city));
+  if (params.country_code) qs.set('country_code', String(params.country_code));
+  if (params.slug) qs.set('slug', String(params.slug));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  try {
+    return await doFetch<DestinationCover | null>(`/destination-covers/resolve${suffix}`, { method: 'GET' });
+  } catch (e: any) {
+    if ([400, 404].includes(Number(e?.status || 0))) return null;
+    throw e;
+  }
+}
+
+function lowerText(value: unknown): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+export function normalizeProviderStatus(provider: any): '' | 'pending' | 'approved' | 'rejected' {
+  const status = lowerText(provider?.status);
+  const verification = lowerText(provider?.verification_status);
+
+  if (!status && !verification) return '';
+  if (status === 'rejected' || verification === 'rejected') return 'rejected';
+  if (status === 'approved' || status === 'verified' || verification === 'approved' || verification === 'verified') {
+    return 'approved';
+  }
+  if (status === 'review_required') return 'pending';
+  return 'pending';
+}
+
+export function isProviderApproved(provider: any): boolean {
+  return normalizeProviderStatus(provider) === 'approved';
 }
 
 // Providers (guides/operators)
@@ -447,6 +778,8 @@ export type CreateProviderInput = {
   base_city: string;
   country_code: string;
   documents?: { doc_type: string; url: string; notes?: string | null; status?: string }[];
+  verified_level?: 'licensed' | 'community';
+  license_url?: string | null;
   access_code?: string;
 };
 export async function createProvider(body: CreateProviderInput): Promise<any> {
@@ -458,9 +791,53 @@ export async function getProvider(id: string): Promise<any> {
   return doFetch<any>(`/providers/${encodeURIComponent(id)}`, { method: 'GET' });
 }
 
+export async function getMyProvider(): Promise<any> {
+  return doFetch<any>(`/providers/me`, { method: 'GET' });
+}
+
+export async function getCurrentProvider(fallbackEmail?: string): Promise<any> {
+  try {
+    return await getMyProvider();
+  } catch (e: any) {
+    const status = Number(e?.status || 0);
+    const msg = String(e?.message || e || '');
+    const shouldTryEmailFallback = !!fallbackEmail && (status === 400 || status === 404 || /provider not found/i.test(msg));
+    if (!shouldTryEmailFallback) throw e;
+
+    const normalized = lowerText(fallbackEmail);
+    const items = await listProviders({ q: normalized, limit: 25 });
+    const exact = (Array.isArray(items) ? items : []).find((item) => lowerText(item?.email) === normalized);
+    if (exact) return exact;
+    throw e;
+  }
+}
+
+export async function listProviders(params: {
+  status?: string;
+  q?: string;
+  limit?: number;
+  page?: number;
+} = {}): Promise<any[]> {
+  const qs = new URLSearchParams();
+  if (params.status) qs.set('status', String(params.status));
+  if (params.q) qs.set('q', String(params.q));
+  if (params.limit) qs.set('limit', String(params.limit));
+  if (params.page) qs.set('page', String(params.page));
+  const res = await doFetch<{ items: any[] }>(`/providers?${qs.toString()}`, { method: 'GET' });
+  return res.items || [];
+}
+
+export async function getProviderByEmail(email: string): Promise<any | null> {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) return null;
+  const items = await listProviders({ q: normalized, limit: 25 });
+  const exact = items.find((item) => String(item?.email || '').toLowerCase() === normalized);
+  return exact || null;
+}
+
 // Listings (tours/services)
 export type CreateListingInput = {
-  provider_id: string;
+  provider_id?: string;
   title: string;
   description?: string | null;
   category: string; // 'tour' | 'transfer' | 'activity' | 'custom'
@@ -496,6 +873,36 @@ export async function deleteListing(id: string, accessCode?: string): Promise<an
   return doFetch<any>(`/listings/${encodeURIComponent(id)}`, { method: 'DELETE', headers });
 }
 
-export default { generateItinerary, predictPricing, listAlerts, subscribeAlert, getAlerts, getItineraries, getCommunityPosts, getDiagnostics, listBookings, searchListings, createProvider, getProvider, createListing, getListing, updateListing, deleteListing, createBooking, startCheckout };
+export default {
+  generateItinerary,
+  predictPricing,
+  getFlightRecommendation,
+  listAlerts,
+  subscribeAlert,
+  getAlerts,
+  getItineraries,
+  getCommunityPosts,
+  getDiagnostics,
+  listBookings,
+  getBooking,
+  chatWadaAgent,
+  searchListings,
+  listDestinationCovers,
+  resolveDestinationCover,
+  createProvider,
+  getProvider,
+  getMyProvider,
+  getCurrentProvider,
+  listProviders,
+  getProviderByEmail,
+  createListing,
+  getListing,
+  updateListing,
+  deleteListing,
+  createBooking,
+  startCheckout,
+  requestAuthCode,
+  verifyAuthCode,
+};
 
 
