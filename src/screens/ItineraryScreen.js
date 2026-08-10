@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,46 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import Constants from 'expo-constants';
+let NativeDateTimePicker = null;
+try {
+  NativeDateTimePicker = require('@react-native-community/datetimepicker').default;
+} catch {}
+const ENABLE_NATIVE_DATE_PICKER = !!NativeDateTimePicker;
+
+const AIRPORT_OPTIONS = [
+  { code: 'MEX', city: 'Mexico City' },
+  { code: 'CUN', city: 'Cancun' },
+  { code: 'SCL', city: 'Santiago' },
+  { code: 'JFK', city: 'New York' },
+  { code: 'LAX', city: 'Los Angeles' },
+  { code: 'MAD', city: 'Madrid' },
+  { code: 'CDG', city: 'Paris' },
+  { code: 'NRT', city: 'Tokyo' },
+];
+
+const toIsoDate = (value) => {
+  if (!value) return '';
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const ItineraryScreen = () => {
   const { t } = useTranslation();
+  const navigation = useNavigation();
   const [origin, setOrigin] = useState('SCL');
   const [destination, setDestination] = useState('JFK');
   const [budgetMin, setBudgetMin] = useState('50');
   const [budgetMax, setBudgetMax] = useState('600');
-  const [startDate, setStartDate] = useState('2025-09-10');
-  const [endDate, setEndDate] = useState('2025-09-15');
+  const [startDate, setStartDate] = useState(new Date('2025-09-10'));
+  const [endDate, setEndDate] = useState(new Date('2025-09-15'));
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [editingField, setEditingField] = useState(null);
   const [adults, setAdults] = useState('1');
   const [flexHours, setFlexHours] = useState('168'); // 1 week
   const [loading, setLoading] = useState(false);
@@ -47,14 +76,38 @@ const ItineraryScreen = () => {
     return isNaN(n) ? null : n;
   };
 
-  const handleCreateAlert = () => {
+  const filteredAirports = useMemo(() => {
+    const currentValue = editingField === 'origin' ? origin : destination;
+    const q = String(currentValue || '').trim().toLowerCase();
+    if (!q) return [];
+    return AIRPORT_OPTIONS.filter((a) => a.code.toLowerCase().includes(q) || a.city.toLowerCase().includes(q)).slice(0, 6);
+  }, [editingField, origin, destination]);
+
+  const handleCreateAlert = async () => {
     const min = parseNumber(budgetMin);
     const max = parseNumber(budgetMax);
     if (min == null || max == null || min <= 0 || max <= 0 || min > max) {
       Alert.alert('Invalid budget', 'Please check your range');
       return;
     }
-    Alert.alert('Ready', 'We will create itinerary alerts with your parameters.');
+    try {
+      const { subscribeAlert } = await import('../lib/api');
+      await subscribeAlert({
+        route: { origin, destination },
+        budget_min: min,
+        budget_max: max,
+        adults: parseInt(adults || '1', 10) || 1,
+        dates: {
+          depart: toIsoDate(startDate) || undefined,
+          return: toIsoDate(endDate) || undefined,
+          flex_hours: parseInt(flexHours || '168', 10) || 168,
+        },
+      });
+      Alert.alert('Alert created', 'We are now tracking this trip window for you.');
+      navigation.navigate('MyAlerts');
+    } catch (e) {
+      Alert.alert('Error', 'Could not create the alert right now.');
+    }
   };
 
   // Load sample itineraries from mock backend when API_MODE=mock
@@ -141,7 +194,7 @@ const ItineraryScreen = () => {
     setLoadingPred(true);
     try {
       const { predictPricing } = await import('../lib/api');
-      const res = await predictPricing({ origin, destination, start_date: startDate || undefined });
+      const res = await predictPricing({ origin, destination, start_date: toIsoDate(startDate) || undefined });
       setPredictions(Array.isArray(res) ? res : []);
     } catch (e) {
       setPredictions([]);
@@ -169,11 +222,29 @@ const ItineraryScreen = () => {
         <View style={styles.row}>
           <View style={[styles.inputGroup, styles.half]}>
             <Text style={styles.label}>Origin</Text>
-            <TextInput style={styles.input} placeholder="SCL" value={origin} onChangeText={setOrigin} />
+            <TextInput style={styles.input} placeholder="SCL" value={origin} onFocus={() => setEditingField('origin')} onChangeText={setOrigin} autoCapitalize="characters" />
+            {editingField === 'origin' && filteredAirports.length > 0 && (
+              <View style={styles.suggestions}>
+                {filteredAirports.map((a) => (
+                  <TouchableOpacity key={`o-${a.code}`} style={styles.suggestionRow} onPress={() => { setOrigin(a.code); setEditingField(null); }}>
+                    <Text style={styles.suggestionText}>{a.code} - {a.city}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
           <View style={[styles.inputGroup, styles.half]}>
             <Text style={styles.label}>Destination</Text>
-            <TextInput style={styles.input} placeholder="JFK" value={destination} onChangeText={setDestination} />
+            <TextInput style={styles.input} placeholder="JFK" value={destination} onFocus={() => setEditingField('destination')} onChangeText={setDestination} autoCapitalize="characters" />
+            {editingField === 'destination' && filteredAirports.length > 0 && (
+              <View style={styles.suggestions}>
+                {filteredAirports.map((a) => (
+                  <TouchableOpacity key={`d-${a.code}`} style={styles.suggestionRow} onPress={() => { setDestination(a.code); setEditingField(null); }}>
+                    <Text style={styles.suggestionText}>{a.code} - {a.city}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         </View>
         
@@ -192,11 +263,37 @@ const ItineraryScreen = () => {
         <View style={styles.row}>
           <View style={[styles.inputGroup, styles.half]}>
             <Text style={styles.label}>Start date</Text>
-            <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={startDate} onChangeText={setStartDate} />
+            <TouchableOpacity style={styles.dateButton} onPress={() => ENABLE_NATIVE_DATE_PICKER && setShowStartPicker(true)}>
+              <Text style={styles.dateText}>{toIsoDate(startDate)}</Text>
+            </TouchableOpacity>
+            {ENABLE_NATIVE_DATE_PICKER && showStartPicker && NativeDateTimePicker && (
+              <NativeDateTimePicker
+                value={startDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={(_, selectedDate) => {
+                  setShowStartPicker(false);
+                  if (selectedDate) setStartDate(selectedDate);
+                }}
+              />
+            )}
           </View>
           <View style={[styles.inputGroup, styles.half]}>
             <Text style={styles.label}>End date</Text>
-            <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={endDate} onChangeText={setEndDate} />
+            <TouchableOpacity style={styles.dateButton} onPress={() => ENABLE_NATIVE_DATE_PICKER && setShowEndPicker(true)}>
+              <Text style={styles.dateText}>{toIsoDate(endDate)}</Text>
+            </TouchableOpacity>
+            {ENABLE_NATIVE_DATE_PICKER && showEndPicker && NativeDateTimePicker && (
+              <NativeDateTimePicker
+                value={endDate || startDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={(_, selectedDate) => {
+                  setShowEndPicker(false);
+                  if (selectedDate) setEndDate(selectedDate);
+                }}
+              />
+            )}
           </View>
         </View>
 
@@ -235,8 +332,8 @@ const ItineraryScreen = () => {
               title: `${origin}-${destination}`,
               origin,
               destination,
-              start_date: startDate,
-              end_date: endDate,
+              start_date: toIsoDate(startDate),
+              end_date: toIsoDate(endDate),
               adults: parseInt(adults || '1', 10) || 1,
               budget_total: parseNumber(budgetMax) || 0,
             };
@@ -281,7 +378,7 @@ const ItineraryScreen = () => {
                     <Text style={styles.tourMeta}>Dates: {fmt(t.startDate) || '—'} - {fmt(t.endDate) || '—'}</Text>
                   )}
                 <Text style={styles.tourMeta}>{t.currency ? `${t.currency} ` : '$'}{t.price} · ⭐ {t.rating ?? 0} ({t.reviews ?? 0})</Text>
-                  <TouchableOpacity style={[styles.button, { backgroundColor: '#00b8b8', marginTop: 8 }]} onPress={() => { try { if (typeof navigation !== 'undefined') navigation.navigate('Reserve', { listing: t }); } catch {} }}>
+                  <TouchableOpacity style={[styles.button, { backgroundColor: '#00b8b8', marginTop: 8 }]} onPress={() => navigation.navigate('Reserve', { listing: t })}>
                     <Text style={styles.buttonText}>Reserve</Text>
                   </TouchableOpacity>
               </View>
@@ -401,6 +498,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#fff',
   },
+  suggestions: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, marginTop: -8, marginBottom: 10, overflow: 'hidden' },
+  suggestionRow: { paddingHorizontal: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  suggestionText: { color: '#334155', fontWeight: '600' },
+  dateButton: { borderWidth: 1, borderColor: '#ced4da', borderRadius: 8, padding: 12, backgroundColor: '#fff' },
+  dateText: { color: '#0f172a' },
   button: {
     backgroundColor: '#ff2aa1',
     padding: 15,

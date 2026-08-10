@@ -1,13 +1,10 @@
 // src/services/communityAnalyticsApi.js
-// Client for the Community Analytics FastAPI service
-import { Platform } from 'react-native';
-
 function resolveBaseUrl() {
   const raw = process.env.EXPO_PUBLIC_COMMUNITY_API;
   if (raw && raw !== 'auto') return raw;
-  const port = process.env.EXPO_PUBLIC_COMMUNITY_PORT || '8082';
-  const host = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-  return `http://${host}:${port}`;
+  const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (apiBase) return apiBase.replace(/\/+$/, '');
+  return 'https://wadatrip.onrender.com';
 }
 
 const BASE_URL = resolveBaseUrl();

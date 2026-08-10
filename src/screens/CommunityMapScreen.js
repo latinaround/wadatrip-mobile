@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { getLocationsOverview } from '../services/communityAnalyticsApi';
 import CommunityMap from '../components/CommunityMap';
+import BrandHeader from '../components/brand/BrandHeader';
+import BrandCard from '../components/brand/BrandCard';
+import { brand } from '../theme/brand';
 
-export default function CommunityMapScreen() {
+export default function CommunityMapScreen({ navigation }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -15,25 +18,55 @@ export default function CommunityMapScreen() {
         setData(res.locations || {});
       } catch (e) {
         setData({});
-      } finally { setLoading(false); }
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
-  if (loading) return <View style={styles.container}><ActivityIndicator /></View>;
+  const openToursForLocation = (value) => {
+    const city = String(value || '')
+      .split(',')[0]
+      .trim();
+    if (!city) return;
+    navigation?.navigate?.('Tours', { destination: city, autoSearch: true });
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator color={brand.colors.primary} />
+        <Text style={styles.loadingText}>Loading destination signals...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Community Map</Text>
-      <CommunityMap data={data} />
-      <Text style={styles.meta}>Tip: add lat/lng to messages to display markers by location.</Text>
+      <BrandHeader
+        title="Destination heatboard"
+        subtitle="See where traveler tips are clustering fastest so discovery feels easier before you book."
+      />
+      <BrandCard style={styles.card}>
+        <CommunityMap data={data} onSelect={openToursForLocation} />
+      </BrandCard>
+      <Text style={styles.meta}>
+        Tap a destination to jump into tours for that city. This view surfaces signal first, then hands travelers to booking.
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8f9fa', paddingTop: Platform.OS === 'ios' ? 50 : 20 },
-  header: { fontSize: 22, fontWeight: '800', color: '#1d3557', paddingHorizontal: 16, marginBottom: 8 },
-  meta: { color: '#6c757d', paddingHorizontal: 16, marginTop: 8 },
-  row: { paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  loc: { fontWeight: '800', color: '#1d3557' },
+  container: { flex: 1, backgroundColor: brand.colors.bg },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: brand.colors.bg, gap: 10 },
+  loadingText: { color: brand.colors.textMuted, fontFamily: brand.typography.body },
+  card: { marginHorizontal: 16, marginTop: 8, borderRadius: 22, overflow: 'hidden' },
+  meta: {
+    color: brand.colors.textMuted,
+    paddingHorizontal: 16,
+    marginTop: 10,
+    fontFamily: brand.typography.body,
+    lineHeight: 20,
+  },
 });

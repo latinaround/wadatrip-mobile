@@ -2,6 +2,7 @@ package com.kiaradiaz0249.wadatripweb
 
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -12,11 +13,25 @@ import expo.modules.ReactActivityDelegateWrapper
 
 class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
+    Log.i("MainActivity", "onCreate: entered before React init")
+    val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+    Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+      Log.e("MainActivity", "Uncaught exception on thread ${thread.name}", throwable)
+      previousHandler?.uncaughtException(thread, throwable)
+    }
     // Set the theme to AppTheme BEFORE onCreate to support
     // coloring the background, status bar, and navigation bar.
     // This is required for expo-splash-screen.
-    setTheme(R.style.AppTheme);
-    super.onCreate(null)
+    try {
+      Log.i("MainActivity", "onCreate: setting theme")
+      setTheme(R.style.AppTheme);
+      Log.i("MainActivity", "onCreate: calling super.onCreate")
+      super.onCreate(null)
+      Log.i("MainActivity", "onCreate: super.onCreate returned")
+    } catch (e: Throwable) {
+      Log.e("MainActivity", "Crash during onCreate", e)
+      throw e
+    }
   }
 
   /**

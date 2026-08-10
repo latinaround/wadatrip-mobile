@@ -5,6 +5,8 @@ import { db } from '../services/firebase';
 import { collection, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
 import { searchListings } from '../lib/api';
 
+const CITY_OPTIONS = ['Tokyo', 'Cancun', 'Mexico City', 'New York', 'Los Angeles', 'Madrid', 'Barcelona', 'Paris', 'Rome', 'Lima', 'Santiago'];
+
 export default function ToursDealsScreen() {
   const [destination, setDestination] = useState('');
   const [allDeals, setAllDeals] = useState([]);
@@ -59,6 +61,12 @@ export default function ToursDealsScreen() {
     return allDeals.filter((d) => String(d.destination || '').toLowerCase().includes(q));
   }, [destination, allDeals]);
 
+  const citySuggestions = useMemo(() => {
+    const q = (destination || '').trim().toLowerCase();
+    if (!q) return [];
+    return CITY_OPTIONS.filter((city) => city.toLowerCase().includes(q)).slice(0, 6);
+  }, [destination]);
+
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.title}>{item.title || 'Tour'}</Text>
@@ -81,6 +89,15 @@ export default function ToursDealsScreen() {
           <Text style={styles.buttonText}>Search</Text>
         </TouchableOpacity>
       </View>
+      {citySuggestions.length > 0 && (
+        <View style={styles.suggestions}>
+          {citySuggestions.map((city) => (
+            <TouchableOpacity key={city} style={styles.suggestionRow} onPress={() => setDestination(city)}>
+              <Text style={styles.suggestionText}>{city}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {loading && (
         <View style={styles.centerRow}><ActivityIndicator color="#2a9d8f" /><Text style={styles.loading}> Loading…</Text></View>
@@ -101,6 +118,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   searchRow: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 8 },
   input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginRight: 8 },
+  suggestions: { marginHorizontal: 16, marginBottom: 8, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, overflow: 'hidden' },
+  suggestionRow: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  suggestionText: { color: '#334155', fontWeight: '600' },
   button: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   primary: { backgroundColor: '#2a9d8f' },
   buttonText: { color: '#fff', fontWeight: '700' },

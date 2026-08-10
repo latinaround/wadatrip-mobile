@@ -1,0 +1,71 @@
+import { Platform } from 'react-native';
+
+export const brand = {
+  colors: {
+    primary: '#18b7ad',
+    secondary: '#df5b95',
+    accent: '#ff9b5c',
+    heroStart: '#0f7f77',
+    heroMid: '#169a99',
+    heroEnd: '#dd8a63',
+    logoStart: '#f04dc6',
+    logoEnd: '#d74ce8',
+    logoHandle: '#ea48b7',
+    logoPin: '#1ad0cf',
+    logoSwoosh: '#ffab38',
+    logoShadow: '#b83b9f',
+    logoWordAqua: '#12c8d0',
+    logoWordOrange: '#ff9728',
+    deep: '#0F172A',
+    bg: '#FBF4EE',
+    bgSoft: '#f7efe7',
+    surface: '#FFFFFF',
+    surfaceWarm: '#fffaf5',
+    surfaceRose: '#fff8fb',
+    surfaceMint: '#f6fdfd',
+    text: '#0F172A',
+    textMuted: '#64748B',
+    border: '#E2E8F0',
+    borderWarm: '#ecd9c8',
+    borderRose: '#ead3e1',
+    borderMint: '#cceced',
+  },
+  gradients: {
+    hero: ['#0f7f77', '#169a99', '#dd8a63'],
+    logo: ['#f04dc6', '#d74ce8'],
+    deep: ['#0F172A', '#1E293B'],
+  },
+  radius: {
+    card: 12,
+    input: 10,
+    chip: 16,
+  },
+  spacing: {
+    xs: 6,
+    sm: 10,
+    md: 16,
+    lg: 24,
+  },
+  typography: {
+    display: Platform.select({
+      ios: 'AvenirNext-Heavy',
+      android: 'sans-serif-black',
+      default: undefined,
+    }),
+    heading: Platform.select({
+      ios: 'AvenirNext-DemiBold',
+      android: 'sans-serif-medium',
+      default: undefined,
+    }),
+    body: Platform.select({
+      ios: 'AvenirNext-Regular',
+      android: 'sans-serif',
+      default: undefined,
+    }),
+    mono: Platform.select({
+      ios: 'Menlo',
+      android: 'monospace',
+      default: undefined,
+    }),
+  },
+};

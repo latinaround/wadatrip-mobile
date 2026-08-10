@@ -30,15 +30,15 @@
   "create_alert": "Create Alert"
   ,
   "home": {
-    "become_provider": "Become a guide / operator",
+    "become_provider": "Become a tour guide / operator",
     "become_provider_sub": "Sign up and publish tours"
   },
   "provider": {
-    "title": "Become a guide",
-    "subtitle": "Create your operator profile to start publishing tours.",
+    "title": "Become a tour guide",
+    "subtitle": "Create your tour guide or operator profile to start publishing tours.",
     "type": "Account type",
-    "guide": "Guide",
-    "operator": "Operator",
+    "guide": "Tour guide",
+    "operator": "Tour operator",
     "name": "Display name",
     "email": "Email",
     "phone_optional": "Phone (optional)",

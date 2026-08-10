@@ -13,6 +13,8 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { auth } from '../services/firebase';
+import { chatWadaAgent } from '../lib/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,7 +25,7 @@ const WadaAgent = (props) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: 'Hi! I\'m WadaAgent, your travel AI. How can I help today?',
+      text: "Need a fast answer? Ask me about tours, flights, or your bookings.",
       isBot: true,
       timestamp: new Date(),
     },
@@ -50,7 +52,7 @@ const WadaAgent = (props) => {
     const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.08,
+          toValue: 1.03,
           duration: 900,
           useNativeDriver: true,
         }),
@@ -118,46 +120,92 @@ const WadaAgent = (props) => {
     };
   }, [isExpanded]);
 
-  const sendMessage = React.useCallback(() => {
-    if (message.trim()) {
-      const currentMessage = message;
-      const messageId = Date.now();
-      
-      const newMessage = {
-        id: messageId,
-        text: currentMessage,
-        isBot: false,
+  const formatAgentText = React.useCallback((data) => {
+    const lines = [];
+    if (data?.reply) lines.push(String(data.reply));
+
+    const recs = Array.isArray(data?.recommendations) ? data.recommendations.slice(0, 3) : [];
+    if (recs.length > 0) {
+      const recLines = recs
+        .map((item) => {
+          const title = String(item?.title || '').trim();
+          if (!title) return null;
+          const price = Number(item?.price || 0);
+          const currency = String(item?.currency || '').trim();
+          const action = String(item?.recommended_action || item?.adred_action || '').trim();
+          const priceText = price > 0 ? ` - ${currency || '$'} ${price}` : '';
+          const actionText = action ? ` (${action})` : '';
+          return `• ${title}${priceText}${actionText}`;
+        })
+        .filter(Boolean);
+      if (recLines.length > 0) {
+        lines.push('', ...recLines);
+      }
+    }
+
+    const rows = Array.isArray(data?.table?.rows) ? data.table.rows.slice(0, 2) : [];
+    if (recs.length === 0 && rows.length > 0) {
+      const rowLines = rows.map((row) => `• ${Array.isArray(row) ? row.filter(Boolean).join(' · ') : ''}`);
+      lines.push('', ...rowLines);
+    }
+
+    return lines.join('\n').trim() || 'I can help with tours, flight timing, and your bookings.';
+  }, []);
+
+  const sendMessage = React.useCallback(async (presetText) => {
+    const currentMessage = String(presetText ?? message).trim();
+    if (!currentMessage) return;
+
+    const messageId = Date.now();
+    const newMessage = {
+      id: messageId,
+      text: currentMessage,
+      isBot: false,
+      timestamp: new Date(),
+    };
+
+    const historyForAgent = messages
+      .slice(-8)
+      .map((item) => ({
+        role: item.isBot ? 'assistant' : 'user',
+        content: String(item.text || ''),
+      }))
+      .filter((item) => item.content);
+
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    setMessage('');
+    setBotTyping(true);
+
+    try {
+      const currentUser = auth?.currentUser;
+      const data = await chatWadaAgent({
+        message: currentMessage,
+        context: {
+          user_email: currentUser?.email || undefined,
+          user_id: currentUser?.uid || undefined,
+        },
+        history: historyForAgent,
+      });
+
+      const botResponse = {
+        id: messageId + 1,
+        text: formatAgentText(data),
+        isBot: true,
         timestamp: new Date(),
       };
-      
-      setMessages(prevMessages => [...prevMessages, newMessage]);
-      setMessage('');
-      
-      // Simular respuesta del bot con respuestas específicas de WadaTrip
-      setBotTyping(true);
-      setTimeout(() => {
-        const responses = [
-          'Great! I can find the best flight deals for you.',
-          'I can set price alerts for your favorite destinations.',
-          'Let me search the cheapest flights for your dates.',
-          'Tip: Enable notifications so you never miss a deal.',
-          'Awesome, let’s create your personalized price alert.',
-          'I can compare airlines to get you the best fare.',
-          'I’ll suggest the best time windows to buy.',
-        ];
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-        
-        const botResponse = {
-          id: messageId + 1,
-          text: randomResponse,
-          isBot: true,
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, botResponse]);
-        setBotTyping(false);
-      }, 1000);
+      setMessages((prev) => [...prev, botResponse]);
+    } catch {
+      const botResponse = {
+        id: messageId + 1,
+        text: 'I could not reach the live assistant right now. Try again in a moment.',
+        isBot: true,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, botResponse]);
+    } finally {
+      setBotTyping(false);
     }
-  }, [message]);
+  }, [formatAgentText, message, messages]);
 
   const handlePress = React.useCallback(() => {
     Animated.sequence([
@@ -235,10 +283,12 @@ const WadaAgent = (props) => {
         >
           <Animated.View style={[styles.glowRing, { opacity: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.35] }) }]} />
           <TouchableOpacity onPress={handlePress} style={styles.buttonContent} activeOpacity={0.85}>
-            {Ionicons ? <Ionicons name="chatbubble-ellipses" size={18} color="white" /> : null}
-            <Text style={styles.floatingButtonText}>WadAi</Text>
+            {Ionicons ? <Ionicons name="sparkles" size={24} color="white" /> : null}
           </TouchableOpacity>
         </Animated.View>
+        <View style={styles.floatingHint}>
+          <Text style={styles.floatingHintText}>Ask Wada</Text>
+        </View>
       </View>
 
       {/* Chat Modal */}
@@ -259,7 +309,7 @@ const WadaAgent = (props) => {
                   </View>
                   <View>
                     <Text style={styles.agentName}>WadaAgent</Text>
-                    <Text style={styles.agentStatus}>AI Assistant • Online</Text>
+                    <Text style={styles.agentStatus}>Tours, flights and bookings</Text>
                   </View>
                 </View>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
@@ -273,7 +323,7 @@ const WadaAgent = (props) => {
                   onPress={() => { try { props?.onGenerateItinerary?.(); } catch {} }}
                   style={{ backgroundColor: '#2a9d8f', paddingVertical: 10, borderRadius: 8, alignItems: 'center' }}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '800' }}>Generate Itinerary</Text>
+                  <Text style={{ color: '#fff', fontWeight: '800' }}>Plan my trip</Text>
                 </TouchableOpacity>
               </View>
 
@@ -307,8 +357,8 @@ const WadaAgent = (props) => {
 
               {/* Quick suggestions */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionsRow}>
-                {['Find flights to Tokyo', 'Best tours under $500', 'Plan 3-day itinerary', 'Set price alert'].map((s) => (
-                  <TouchableOpacity key={s} style={styles.suggestionChip} onPress={() => { setMessage(s); setTimeout(() => sendMessage(), 0); }}>
+                {['Tours in Lima', 'My bookings', 'MEX to CUN timing', 'Tours under $120'].map((s) => (
+                  <TouchableOpacity key={s} style={styles.suggestionChip} onPress={() => { setMessage(s); sendMessage(s); }}>
                     <Text style={styles.suggestionText}>{s}</Text>
                   </TouchableOpacity>
                 ))}
@@ -321,7 +371,7 @@ const WadaAgent = (props) => {
                   style={styles.textInput}
                   value={message}
                   onChangeText={setMessage}
-                  placeholder="Type your message..."
+                  placeholder="Ask about tours, flights, or bookings..."
                   placeholderTextColor="#999"
                   multiline
                   maxLength={500}
@@ -334,7 +384,7 @@ const WadaAgent = (props) => {
                     }
                   } : undefined}
                 />
-                <TouchableOpacity onPress={sendMessage} style={[styles.sendButton, { opacity: message.trim() ? 1 : 0.5, backgroundColor: theme.accent }]} disabled={!message.trim()}>
+                <TouchableOpacity onPress={() => sendMessage()} style={[styles.sendButton, { opacity: message.trim() ? 1 : 0.5, backgroundColor: theme.accent }]} disabled={!message.trim()}>
                   {Ionicons ? <Ionicons name="send" size={20} color="white" /> : null}
                 </TouchableOpacity>
               </View>
@@ -349,8 +399,8 @@ const WadaAgent = (props) => {
 const styles = StyleSheet.create({
   floatingContainer: {
     position: 'absolute',
-    bottom: 24,
-    right: 12,
+    bottom: 28,
+    right: 14,
     alignItems: 'center',
     zIndex: 1000,
   },
@@ -358,14 +408,17 @@ const styles = StyleSheet.create({
     display: 'none',
   },
   floatingButton: {
-    paddingHorizontal: 8,
-    height: 32,
-    borderRadius: 16,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: '#2a9d8f',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
     shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 14,
+    shadowColor: '#0f172a',
   },
   glowRing: {
     position: 'absolute',
@@ -373,18 +426,30 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-    borderRadius: 16,
+    borderRadius: 29,
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: '#3a86ff',
   },
   buttonContent: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    width: '100%',
+    height: '100%',
   },
-  floatingButtonText: { color: '#fff', fontWeight: '800', fontSize: 11, includeFontPadding: false },
+  floatingHint: {
+    marginTop: 6,
+    backgroundColor: 'rgba(15, 23, 42, 0.76)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  floatingHintText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 11,
+    includeFontPadding: false,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

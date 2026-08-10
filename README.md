@@ -52,3 +52,31 @@
 3. Sincronizar Expo (`app.config.ts`, `.env.development`) y ejecutar `eas build --platform android --profile preview --clear-cache`.
 4. Probar el build en dispositivo, verificando login, alerts y Stripe end-to-end, y retomar el backlog de operadores/itinerarios, ADRED, checkout y UI/UX.
 
+## Progress Notes (2026-04-08)
+
+### Done Today
+- Backend local `community_analytics` levantado en `http://127.0.0.1:3015` con `uvicorn app.main:app --host 127.0.0.1 --port 3015`.
+- Verificados `200 OK` en `/docs` y `/openapi.json`.
+- Stripe del backend mobile alineado con la platform web: acepta `STRIPE_SECRET_KEY` o `STRIPE_SECRET`, usa `CHECKOUT_SUCCESS_URL` / `CHECKOUT_CANCEL_URL` / `GATEWAY_URL`, y expone webhook en `/webhooks/stripe`.
+- Implementados endpoints reales de bookings y checkout:
+  - `POST /bookings`
+  - `GET /bookings`
+  - `GET /bookings/{booking_id}`
+  - `POST /payments/bookings/{booking_id}/checkout`
+- Expo/Metro levantado con `npm run dev:agent`, usando `adb reverse tcp:3015 tcp:3015` y `EXPO_PUBLIC_API_BASE_URL=http://localhost:3015`.
+- Emulador Android conectado (`emulator-5554`) y app abierta contra backend local.
+
+### Local Runtime Notes
+- Para Firestore local se usó una service account del proyecto `wadatrip-nuevo` definida en `GOOGLE_APPLICATION_CREDENTIALS`.
+- El backend no sube sin credenciales de Google; el error esperado si faltan es `google.auth.exceptions.DefaultCredentialsError`.
+- Logs locales de esta sesión:
+  - `C:\Users\kiara\wadatrip-backend.out.log`
+  - `C:\Users\kiara\wadatrip-backend.err.log`
+  - `C:\Users\kiara\wadatrip-expo.out.log`
+  - `C:\Users\kiara\wadatrip-expo.err.log`
+
+### Next Steps
+1. Probar flujo real `guide publishes tour -> traveler creates booking -> checkout`.
+2. Validar webhook de Stripe en `/webhooks/stripe` con el mismo entorno de la platform.
+3. Confirmar que Profile/Bookings/Wallet reflejan los nuevos bookings end-to-end.
+

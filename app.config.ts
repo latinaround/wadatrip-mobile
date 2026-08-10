@@ -1,18 +1,29 @@
 import "dotenv/config";
 
-const publishableKey = process.env.EXPO_PUBLIC_STRIPE_KEY || process.env.STRIPE_PUBLISHABLE_KEY || "";
-const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || "http://10.0.2.2:3000";
-const apiFallbackUrl = process.env.EXPO_PUBLIC_API_FALLBACK_URL || "https://alerts.dev.wadatrip.com";
+const publishableKey =
+  process.env.EXPO_PUBLIC_STRIPE_KEY ||
+  process.env.STRIPE_PUBLISHABLE_KEY ||
+  process.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+  process.env.VITE_STRIPE_PUBLIC_KEY ||
+  "";
+const apiBaseUrl =
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  process.env.VITE_API_BASE_URL ||
+  process.env.GATEWAY_URL ||
+  "https://wadatrip.onrender.com";
+const apiFallbackUrl = process.env.EXPO_PUBLIC_API_FALLBACK_URL || "https://wadatrip.onrender.com";
+const apiMode = process.env.EXPO_PUBLIC_API_MODE || "live";
 const bypassAuth = process.env.EXPO_PUBLIC_BYPASS_AUTH === "true";
 const showBypassBanner = process.env.EXPO_PUBLIC_SHOW_BYPASS_BANNER === "true";
 const minimalNav = process.env.EXPO_PUBLIC_MINIMAL_NAV === "true";
 const disablePaper = process.env.EXPO_PUBLIC_DISABLE_PAPER === "true";
+const enableWadaAgent = process.env.EXPO_PUBLIC_ENABLE_WADA_AGENT !== "false";
 
 export default ({ config }: { config: Record<string, any> }) => ({
   ...config,
   name: "WadaTrip Mobile",
   slug: "wadatrip-mobile",
-  version: "1.0.3",
+    version: "1.0.17",
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "light",
@@ -37,7 +48,7 @@ export default ({ config }: { config: Record<string, any> }) => ({
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
-    versionCode: 3,
+    versionCode: 17,
     package: "com.kiaradiaz0249.wadatripweb",
     permissions: [
       "INTERNET",
@@ -84,10 +95,12 @@ export default ({ config }: { config: Record<string, any> }) => ({
     },
     API_BASE_URL: apiBaseUrl,
     API_FALLBACK_URL: apiFallbackUrl,
+    API_MODE: apiMode,
     HTTP_TIMEOUT_MS: 10000,
     BYPASS_AUTH: bypassAuth,
     SHOW_BYPASS_BANNER: showBypassBanner,
     MINIMAL_NAV: minimalNav,
     DISABLE_PAPER: disablePaper,
+    ENABLE_WADA_AGENT: enableWadaAgent,
   },
 });

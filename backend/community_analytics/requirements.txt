@@ -2,6 +2,7 @@ fastapi==0.112.0
 uvicorn[standard]==0.30.6
 pydantic==2.8.2
 google-cloud-firestore==2.16.0
+firebase-admin==6.5.0
 transformers==4.43.4
 torch>=2.2.0
 sentence-transformers==3.0.1

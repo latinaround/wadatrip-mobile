@@ -48,11 +48,11 @@ export async function hydrateStoredAppSession() {
   }
 }
 
-export async function saveGuideCodeSession(payload = {}) {
+export async function saveGatewaySession(payload = {}, kind = 'gateway') {
   const token = String(payload.token || '').trim();
   if (!token) throw new Error('Missing auth token');
   const session = {
-    kind: 'guide_code',
+    kind,
     token,
     user: normalizeUser(payload.user || payload),
     createdAt: new Date().toISOString(),
@@ -63,6 +63,9 @@ export async function saveGuideCodeSession(payload = {}) {
   return session;
 }
 
+export async function saveGuideCodeSession(payload = {}) {
+  return saveGatewaySession(payload, 'guide_code');
+}
 export async function clearStoredAppSession() {
   try {
     await AsyncStorage.removeItem(SESSION_KEY);

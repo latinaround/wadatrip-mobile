@@ -10,7 +10,6 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getAnalytics, isSupported } from "firebase/analytics";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
@@ -62,13 +61,21 @@ export const db = getFirestore(app);
 // 🗄 Storage (Archivos e imágenes)
 export const storage = getStorage(app);
 
-// 📊 Analytics (solo si está soportado)
+// 📊 Analytics (solo web; en native puede romper si se importa en tiempo de carga)
 export let analytics = null;
-isSupported().then((supported) => {
-  if (supported) {
-    analytics = getAnalytics(app);
+const initAnalytics = async () => {
+  if (Platform.OS !== "web") return;
+  try {
+    const mod = await import("firebase/analytics");
+    const supported = await mod.isSupported();
+    if (supported) {
+      analytics = mod.getAnalytics(app);
+    }
+  } catch (e) {
+    console.log("⚠️ Analytics not available:", e?.message || e);
   }
-});
+};
+initAnalytics();
 
 // 🔔 Notificaciones Push (Expo Notifications)
 try {

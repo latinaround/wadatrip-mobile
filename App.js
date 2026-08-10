@@ -11,9 +11,10 @@ import "./src/i18n";
 import i18n from "./src/i18n";
 import { resolveAppLanguage } from "./src/services/language";
 
-import { auth, setupNotificationListeners } from "./src/services/firebase";
-import { getCurrentAppUser, hydrateStoredAppSession, subscribeAppSession } from "./src/services/appSession";
+import { auth, requestForToken, setupNotificationListeners } from "./src/services/firebase";
+import { clearStoredAppSession, getCurrentAppUser, hydrateStoredAppSession, saveGatewaySession, subscribeAppSession } from "./src/services/appSession";
 import { onAuthStateChanged, onIdTokenChanged } from "firebase/auth";
+import { exchangeFirebaseToken, registerExpoPushToken } from "./src/lib/api";
 // Dev override de API_BASE_URL por IP LAN (útil cuando 10.0.2.2 no funciona)
 if (typeof __DEV__ !== 'undefined' && __DEV__) {
   // Removed global.API_BASE_URL override; use env/extra/defaults
@@ -30,7 +31,6 @@ import CommunityMapScreen from "./src/screens/CommunityMapScreen";
 import CommunityInsightsScreen from "./src/screens/CommunityInsightsScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import ReserveBookingScreen from "./src/screens/ReserveBookingScreen";
-import PaymentScreen from "./src/screens/PaymentScreen";
 import BookingSuccessScreen from "./src/screens/BookingSuccessScreen";
 import BookingDetailScreen from "./src/screens/BookingDetailScreen";
 import ProviderSignupScreen from "./src/screens/ProviderSignupScreen";
@@ -126,22 +126,32 @@ export default function App() {
     try {
       const unsubscribe = onAuthStateChanged(auth, async (u) => {
         if (u) {
-          setUser(u);
-          try { global.APP_SESSION_USER = undefined; } catch {}
-          setLoading(false);
           try {
-            if (typeof u.getIdToken === 'function') {
-              const token = await u.getIdToken();
-              try { global.AUTH_TOKEN = token; } catch {}
-            }
-          } catch {}
+            const firebaseIdToken = await u.getIdToken();
+            const gatewaySession = await exchangeFirebaseToken(firebaseIdToken);
+            await saveGatewaySession({
+              token: gatewaySession?.token,
+              user: { ...gatewaySession?.user, uid: u.uid, authSource: 'firebase' },
+            }, 'firebase');
+            const expoToken = await requestForToken();
+            if (expoToken) await registerExpoPushToken(expoToken, Platform.OS);
+            setUser(u);
+          } catch (error) {
+            console.error('[AUTH] Could not establish gateway session:', error);
+            setBootError('Could not connect your account. Please try again.');
+            setUser(null);
+          }
+          setLoading(false);
           return;
         }
-
         const session = await hydrateStoredAppSession();
-        setUser(session?.user || null);
-        setLoading(false);
-      });
+        if (session?.kind === 'guide_code') {
+          setUser(session.user);
+        } else {
+          await clearStoredAppSession();
+          setUser(null);
+        }
+        setLoading(false);      });
       return unsubscribe;
     } catch (e) {
       console.error("[BOOT] Auth init failed:", e);
@@ -167,8 +177,12 @@ export default function App() {
     const unsub = onIdTokenChanged(auth, async (u) => {
       try {
         if (u && typeof u.getIdToken === 'function') {
-          const token = await u.getIdToken(true);
-          try { global.AUTH_TOKEN = token; } catch {}
+          const firebaseIdToken = await u.getIdToken(true);
+          const gatewaySession = await exchangeFirebaseToken(firebaseIdToken);
+          await saveGatewaySession({
+            token: gatewaySession?.token,
+            user: { ...gatewaySession?.user, uid: u.uid, authSource: 'firebase' },
+          }, 'firebase');
         } else if (!getCurrentAppUser()) {
           try { global.AUTH_TOKEN = undefined; } catch {}
         }
@@ -303,7 +317,6 @@ export default function App() {
                 <Stack.Screen name="ToursDeals" component={ensureScreen(ToursScreen, "ToursScreen")} options={stackHeaderOptions('Explore')} />
                 <Stack.Screen name="TourDetail" component={ensureScreen(TourDetailScreen, "TourDetailScreen")} options={stackHeaderOptions('Tour details')} />
                 <Stack.Screen name="Reserve" component={ensureScreen(ReserveBookingScreen, "ReserveBookingScreen")} options={stackHeaderOptions('Reserve Tour')} />
-                <Stack.Screen name="Payment" component={ensureScreen(PaymentScreen, "PaymentScreen")} options={stackHeaderOptions('Payment')} />
                 <Stack.Screen name="BookingSuccess" component={ensureScreen(BookingSuccessScreen, "BookingSuccessScreen")} options={stackHeaderOptions('Confirmed', { headerLeft: () => null, gestureEnabled: false })} />
                 <Stack.Screen name="BookingDetail" component={ensureScreen(BookingDetailScreen, "BookingDetailScreen")} options={stackHeaderOptions('Booking detail')} />
                 <Stack.Screen name="ProviderSignup" component={ensureScreen(ProviderSignupScreen, "ProviderSignupScreen")} options={stackHeaderOptions('Become a tour guide / operator')} />

@@ -13,6 +13,8 @@
         sync: false
       - key: GOOGLE_APPLICATION_CREDENTIALS
         sync: false
+      - key: ADMIN_UIDS
+        sync: false
       - key: TRAVELPAYOUTS_TOKEN
         sync: false
       - key: AMADEUS_CLIENT_ID
@@ -25,3 +27,5 @@
         sync: false
       - key: SIMULATE_FLIGHTS
         value: "1"
+      - key: ALLOW_DEV_AUTH_BYPASS
+        value: "0"

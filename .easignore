@@ -26,6 +26,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 *.log
+tmp_*
+tmp-current.png
+tmp-emulator*.png
+tmp_patch*/
+uploads/
+.gradle-user/
+eas-inspect/
+eas-inspect-pre/
 # Excluir entornos / scripts locales
 backend/
 scripts/

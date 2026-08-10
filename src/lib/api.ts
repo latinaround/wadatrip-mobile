@@ -6,6 +6,7 @@ export type CreateBookingInput = {
   total_price?: number | string;
   user_email?: string;
   user_name?: string;
+  trip_id?: string;
 };
 export async function createBooking(body: CreateBookingInput): Promise<any> {
   return doFetch<any>(`/bookings`, { method: 'POST', body: JSON.stringify(body) });
@@ -162,6 +163,13 @@ export async function verifyAuthCode(body: VerifyAuthCodeInput): Promise<any> {
   });
 }
 
+export async function exchangeFirebaseToken(idToken: string): Promise<any> {
+  return doFetch<any>('/auth/firebase', { method: 'POST', body: JSON.stringify({ id_token: idToken }) });
+}
+
+export async function registerExpoPushToken(token: string, platform?: string): Promise<any> {
+  return doFetch<any>('/devices/push-token', { method: 'POST', body: JSON.stringify({ token, platform }) });
+}
 async function doFetch<T>(path: string, init: RequestInit): Promise<T> {
   const bases = resolveApiBases();
   const extra = (Constants as any)?.expoConfig?.extra || {};
@@ -873,6 +881,11 @@ export async function deleteListing(id: string, accessCode?: string): Promise<an
   return doFetch<any>(`/listings/${encodeURIComponent(id)}`, { method: 'DELETE', headers });
 }
 
+export type CreateTripInput = { destination: string; title?: string; start_date?: string; end_date?: string; travelers?: number; budget?: number | string; currency?: string; interests?: string[]; };
+export async function listTrips(): Promise<any[]> { const res = await doFetch<{ items: any[] }>(`/trips`, { method: 'GET' }); return res.items || []; }
+export async function createTrip(body: CreateTripInput): Promise<any> { return doFetch<any>('/trips', { method: 'POST', body: JSON.stringify(body) }); }
+export async function getTrip(id: string): Promise<any> { return doFetch<any>(`/trips/${encodeURIComponent(id)}`, { method: 'GET' }); }
+export async function saveTripExperience(tripId: string, listingId: string, source = 'traveler'): Promise<any> { return doFetch<any>(`/trips/${encodeURIComponent(tripId)}/experiences`, { method: 'POST', body: JSON.stringify({ listing_id: listingId, source }) }); }
 export default {
   generateItinerary,
   predictPricing,
@@ -900,8 +913,14 @@ export default {
   updateListing,
   deleteListing,
   createBooking,
+  listTrips,
+  createTrip,
+  getTrip,
+  saveTripExperience,
   startCheckout,
   requestAuthCode,
+  exchangeFirebaseToken,
+  registerExpoPushToken,
   verifyAuthCode,
 };
 

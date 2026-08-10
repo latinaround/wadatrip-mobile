@@ -34,6 +34,8 @@ yarn-error.*
 
 # local env files
 .env*.local
+backend/community_analytics/.env
 
 # typescript
 *.tsbuildinfo
+android/keystore.properties
